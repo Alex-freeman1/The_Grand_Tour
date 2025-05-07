@@ -36,10 +36,10 @@ spice.furnsh("data\latest_leapseconds (1).tls")
 
 planet0 = 'Mars' #Case sensitive
 planet1 = 'Jupiter'
-departure0 = '2005-07-19'         
-departure1 = '2006-12-06'  
-arrival0 = '2005-12-26'         
-arrival1 = '2010-11-30'
+departure0 = '2020-07-19'         
+departure1 = '2024-12-06'  
+arrival0 = '2021-12-26'         
+arrival1 = '2031-11-30'
 
 # Step size (in days)
 step_size = 50

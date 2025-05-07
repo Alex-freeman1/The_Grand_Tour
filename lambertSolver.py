@@ -43,20 +43,30 @@ def lambert_solver(R1, R2, dt, mu, tol=1e-6, maxiter=10000, trajectory='pro'):
     
 # Define the second and third stumphff functions that are used in celestial orbital mechanics 
 # As per the Wikipedia page
+    eps = 1e-8  # Tolerance for small x
     def stumphff2(x):
-        if x > 0:
-            return (1 - np.cos(np.sqrt(x))) / x
-        elif x < 0:
-            return (np.cosh(np.sqrt(-x)) - 1) / (-x)
+        if x > eps:
+            sqrt_x = np.sqrt(x)
+            return (1 - np.cos(sqrt_x)) / x
+        elif x < -eps:
+            sqrt_neg_x = np.sqrt(-x)
+            return (np.cosh(sqrt_neg_x) - 1) / (-x)
         else:
-            return 1 / 2
+            # Taylor expansion around x = 0
+            return 1 / 2 - x / 24 + x**2 / 720  # add more terms for higher precision
+        
     def stumphff3(x):
-        if x > 0:
-            return (np.sqrt(x) - np.sin(np.sqrt(x))) / (np.sqrt(x)) ** 3
-        elif x < 0:
-            return (np.sinh(np.sqrt(-x)) - np.sqrt(-x)) / (np.sqrt(-x)) ** 3
+       
+    
+        if x > eps:
+            sqrt_x = np.sqrt(x)
+            return (sqrt_x - np.sin(sqrt_x)) / (sqrt_x ** 3)
+        elif x < -eps:
+            sqrt_neg_x = np.sqrt(-x)
+            return (np.sinh(sqrt_neg_x) - sqrt_neg_x) / (sqrt_neg_x ** 3)
         else:
-            return 1 / 6
+            # Use Taylor expansion around x = 0
+            return 1 / 6 - x / 120 + x**2 / 5040  # optional higher-order accuracy
 
     # Define the coeffecient B as used in the paper
     def coeff_B(x):

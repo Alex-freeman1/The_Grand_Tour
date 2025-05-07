@@ -47,10 +47,12 @@ step_size = 10
 # --------------------
 
 # Dates for Launchwindow - wikipedia
-departure_dates_0_i = '2004-01-20'         # Intial departure date
-departure_dates_0_f = '2004-5-07'         # Final departure date
-arrival_dates_0_i = '2004-12-01'         # Initial arrival date
+departure_dates_0_i = '2004-02-05'         # Intial departure date
+departure_dates_0_f = '2004-08-23'         # Final departure date
+arrival_dates_0_i = '2005-12-01'         # Initial arrival date
 arrival_dates_0_f = '2007-02-24'          # Final arrival date
+
+
 
 # Frame of reference from the planetary data
 OBSERVER= pd.sun['name']
@@ -266,16 +268,16 @@ print(arrival_dates_1_i)
 print(arrival_dates_1_f)
 
 
-departure_dates_1_i = '2006-02-19'         
-departure_dates_1_f = '2006-12-06'  
-arrival_dates_1_i = '2005-12-26'         
-arrival_dates_1_f = '2010-11-30'
+departure_dates_1_i = '2006-03-11'         
+departure_dates_1_f = '2006-11-16'  
+arrival_dates_1_i = '2007-12-26'         
+arrival_dates_1_f = '2012-11-30'
 
 
+departure_dates_1_i = '2005-12-01'         # Initial arrival date
+departure_dates_1_f = '2007-02-24'  
 
-
-
-
+ 
 
 
 
@@ -289,7 +291,7 @@ planet1 = 'Jupiter'
 
 
 # Step size (in days)
-step_size = 50
+step_size = 10
 step = step_size*3600*24
 # --------------------
 
@@ -435,10 +437,10 @@ print( 'Total Combinations: %i.'   % total )
 normed_departures1 = (et_departures - et_departures[0])/(3600.0 * 24.0)
 normed_arrivals1 = (et_arrivals  - et_arrivals[0])/(3600.0 * 24.0)
 
+# mask = (normed_departures1 >= 100) & (normed_departures1 <= 300)
 
-
-
-
+# normed_departures1fil = normed_departures1[mask]
+# normed_arrivals1fil = normed_arrivals1[mask]
 
 
 
@@ -492,6 +494,8 @@ for i in range(n_plots):
         ax.set_xlabel(f"Departure (Days Past {date_names[i][0]})")
         ax.set_ylabel(f"Arrival (Days Past {date_names[i][2]})")
         ax.grid(True, linestyle='--', color='gray', linewidth=0.5)
+        
+        ax.axhline(y=200, color='red', linestyle='--')
     # Odd plots: rotated
     else:
         ax.grid(True)
@@ -501,10 +505,16 @@ for i in range(n_plots):
         cont  = ax.contour(date_axis[i][1], date_axis[i][0][::-1],  Z_rot, levels=c3_levels,colors='m', linewidths = lw)
         ax.set_ylabel(f"Departure (Days Past {date_names[i][0]})")
         ax.set_xlabel(f"Arrival (Days Past {date_names[i][2]})")
-        ax.xaxis.set_ticks_position('top')
-        ax.xaxis.set_label_position('top')
-        # ax.set_yticks([])
-        # ax.spines['left'].set_visible(False)
+        ax.xaxis.set_ticks_position('bottom')
+        ax.xaxis.set_label_position('bottom')
+        ax.yaxis.set_ticks_position('right')
+        ax.yaxis.set_label_position('right')
+        if i == 1:
+            plt.ylim(100, 330)
+        #ax.set_yticks([])
+        #ax.spines['left'].set_visible(False)
+        
+        ax.axhline(y=200, color='red', linestyle='--')
 
     ax.set_title(f"Segment {segment_names[i]}", fontsize=8)
     ax.grid(True, linestyle='--', color='gray', linewidth=0.5)
