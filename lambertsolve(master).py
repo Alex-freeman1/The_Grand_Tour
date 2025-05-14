@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed May 14 16:02:26 2025
+
+@author: alexa
+"""
 
 
 
@@ -23,27 +29,22 @@ This derives all the variables that this script uses
 # It takes in some x value as an initial guess and changes it slightly until some 
 # Condition is met; in this case it's when the x value is 
 # Within the tolerance
-def newton_interation(time, dydx, init_guess, tol, i=100):
-    x = init_guess
-
-    for _ in range(i):
-        fx = time(x)
-        dfx = dydx(x)
-
-        # Guard: avoid division by zero or nan/inf
-        if dfx == 0 or np.isnan(dfx) or np.isinf(dfx):
-            #print(f"Newton failed: derivative invalid at x = {x}")
-            return np.nan
-
+def newton_iteration(f, df, x0, tol, max_iter=1000):
+    x = x0
+    for _ in range(max_iter):
+        fx = f(x)
+        dfx = df(x)
+        
+        # Avoid divide-by-zero
+        if np.abs(dfx) < 1e-12:
+            break
+        
         x_new = x - fx / dfx
-
         if np.abs(x_new - x) < tol:
             return x_new
-
         x = x_new
 
-    #print("Newton iteration did not converge.")
-    return np.nan
+    raise RuntimeError("Newton iteration did not converge.")
     
 
 
@@ -51,101 +52,52 @@ def newton_interation(time, dydx, init_guess, tol, i=100):
 # It takes in the position vectors with respect to some frame, in this case it will be the sun,
 # The time of flight, as well as the Gravitational potential factor, mu, again in this case it 
 # will be the sun
-def lambert_solver(R1, R2, dt, mu, tol=1e-6, maxiter=1000, trajectory='pro'):
+def lambert_solver(R1, R2, dt, mu, tol=1e-3, maxiter=10000, trajectory='pro'):
 
     
 # Define the second and third stumphff functions that are used in celestial orbital mechanics 
 # As per the Wikipedia page
+    eps = 1e-8  # Tolerance for small x
     def stumphff2(x):
-        eps = 1e-6
-        threshold = 80  # Avoid overflow in cosh/sinh
-    
         if x > eps:
             sqrt_x = np.sqrt(x)
             return (1 - np.cos(sqrt_x)) / x
         elif x < -eps:
             sqrt_neg_x = np.sqrt(-x)
-            if sqrt_neg_x > threshold:
-                return np.inf  # or return np.nan to indicate failure
             return (np.cosh(sqrt_neg_x) - 1) / (-x)
         else:
-            # Use Taylor series around 0
-            return 1 / 2 - x / 24 + x**2 / 720
-    
+            # Taylor expansion around x = 0
+            return 1 / 2 - x / 24 + x**2 / 720  # add more terms for higher precision
+        
     def stumphff3(x):
-        eps = 1e-8
-        threshold = 100  # Avoid overflow in sinh
+       
     
         if x > eps:
             sqrt_x = np.sqrt(x)
             return (sqrt_x - np.sin(sqrt_x)) / (sqrt_x ** 3)
         elif x < -eps:
             sqrt_neg_x = np.sqrt(-x)
-            if sqrt_neg_x > threshold:
-                return np.inf  # or np.nan
             return (np.sinh(sqrt_neg_x) - sqrt_neg_x) / (sqrt_neg_x ** 3)
         else:
-            return 1 / 6 - x / 120 + x**2 / 5040
+            # Use Taylor expansion around x = 0
+            return 1 / 6 - x / 120 + x**2 / 5040  # optional higher-order accuracy
 
     # Define the coeffecient B as used in the paper
     def coeff_B(x):
-        s2 = stumphff2(x)
-        if s2 <= 0 or np.isnan(s2) or np.isinf(s2):
-            return np.nan  # or return some large number or failure code
-        try:
-            return r1 + r2 + A * (x * stumphff3(x) - 1) / np.sqrt(s2)
-        except:
-            return np.nan
+        return r1 + r2 + A * (x * stumphff3(x) - 1) / np.sqrt(stumphff2(x))
 
     # Define the function to return the change in time of flight
     def delta_T(x):
-        try:
-            B = coeff_B(x)
-            S = stumphff2(x)
-            T = stumphff3(x)
-    
-            if S <= 0 or B <= 0 or not np.isfinite(B) or not np.isfinite(S):
-                return np.inf  # Unphysical or unstable
-    
-            term1 = (B / S) ** 1.5 * T
-            term2 = A * np.sqrt(B)
-    
-            F = term1 + term2
-            if not np.isfinite(F):
-                return np.inf
-    
-            return F - np.sqrt(mu) * dt
-        except Exception:
-            return np.inf
-    
-    
-    # def delta_T(x):
-    #     return (coeff_B(x) / stumphff2(x)) ** 1.5 * stumphff3(x) + A *  np.sqrt(coeff_B(x)) - np.sqrt(mu) * dt
+        return (coeff_B(x) / stumphff2(x)) ** 1.5 * stumphff3(x) + A *  np.sqrt(coeff_B(x)) - np.sqrt(mu) * dt
     
     # Function to pass into the intetation method 
     def change_tol(x):
-        try:
-            B = coeff_B(x)
-            S2 = stumphff2(x)
-            S3 = stumphff3(x)
-    
-            # Prevent invalid or unsafe operations
-            if x == 0 or S2 <= 0 or B <= 0 or not np.isfinite(B) or not np.isfinite(S2):
-                return np.inf  # Or return 0 if you prefer a graceful fallback
-    
-            ratio = B / S2
-            sqrtB = np.sqrt(B)
-            sqrt_ratio = ratio ** 1.5
-    
-            # Construct derivative safely
-            term1 = sqrt_ratio * (1 / (2 * x) * (S2 - 1.5 * S3 / S2) + 0.75 * S3**2 / S2)
-            term2 = A / 8 * (3 * S3 / S2 * sqrtB + A * np.sqrt(S2 / B))
-    
-            df = term1 + term2
-    
-            return df if np.isfinite(df) else np.inf
-        except Exception:
-            return np.inf
+        if x == 0:
+            return np.sqrt(2) / 40 * coeff_B(0) ** 1.5 + A / 8 * (np.sqrt(coeff_B(0)) + A * np.sqrt(1 / 2 / coeff_B(0)))
+        else:
+            return (coeff_B(x) / stumphff2(x)) ** 1.5 * (1 / 2 / x * (stumphff2(x) - 3 * stumphff3(x) / 2 / stumphff2(x)) + 3 * stumphff3(x) ** 2 / 4 / stumphff2(x)) + A / 8 * (3 * stumphff3(x) / stumphff2(x) * np.sqrt(coeff_B(x) ) + A * np.sqrt(stumphff2(x) / coeff_B(x) ))
+        
+
 
     # Magnitudes of R1 and R2
     r1 = np.linalg.norm(R1)
@@ -177,18 +129,15 @@ def lambert_solver(R1, R2, dt, mu, tol=1e-6, maxiter=1000, trajectory='pro'):
     
     # Initialise some variable x to compute the Newton Interation
     x = 0.1
-    attempts = 0
-    while delta_T(x) < 0:
-        x += 0.1
-        attempts += 1
-        if attempts > 1000:
-            print("No feasible Lambert solution: delta_T(x) < 0 for all x tried.")
-            return None
+    for _ in range(1000):
+        if delta_T(x) >= 0:
+            break
+    x += 0.1
         
 
     # Complete the Newton Interation function
-    x = newton_interation(delta_T, change_tol, x, tol, maxiter)
-
+    x = newton_iteration(delta_T, change_tol, x, tol, maxiter)
+    
 
     # Check if x is some reasonable number
     if np.isnan(x) or np.isinf(x):
@@ -213,3 +162,4 @@ def lambert_solver(R1, R2, dt, mu, tol=1e-6, maxiter=1000, trajectory='pro'):
         # At Mars respectively
         return V1, V2
     
+

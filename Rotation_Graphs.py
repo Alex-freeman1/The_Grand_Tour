@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Example data
-Z = np.random.rand(10, 10)
+Z = np.random.rand(2, 2)
 departure_dates = np.linspace(0, 10, 10)
 arrival_dates = np.linspace(0, 20, 10)
 
