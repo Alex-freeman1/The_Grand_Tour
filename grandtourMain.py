@@ -216,10 +216,10 @@ planet1 = 'Mars'
 # Dates for Launchwindow - wikipedia
 
 
-dep_dates_0 = '2005-06-20'         # Intial departure date
-dep_dates_1 = '2010-11-07'         # Final departure date
-arr_dates_0 = '2005-12-01'         # Initial arrival date
-arr_dates_1 = '2015-02-24'          # Final arrival date 
+dep_dates_0 = '2006-02-01'         # Intial departure date
+dep_dates_1 = '2020-11-07'         # Final departure date
+arr_dates_0 = '2006-02-01'         # Initial arrival date
+arr_dates_1 = '2020-12-01'          # Final arrival date 
 # Holds the spice name of the planets  
 departure_planet, arrival_planet = loop_bodies(planet0, planet1)
 johann_1 = johann(departure_planet, arrival_planet, dep_dates_0, dep_dates_1, arr_dates_0, arr_dates_1)   
@@ -231,8 +231,8 @@ planet1 = 'Jupiter'
 departure_planet, arrival_planet = loop_bodies(planet0, planet1)
 dep_dates_1_i = '2006-02-01'       
 dep_dates_1_f = '2020-12-01'  
-arr_dates_1_i = '2007-08-01'         
-arr_dates_1_f = '2025-01-01'
+arr_dates_1_i = '2009-01-01'         
+arr_dates_1_f = '2030-01-01'
 johann_2 = johann(departure_planet, arrival_planet, dep_dates_1_i, dep_dates_1_f, arr_dates_1_i, arr_dates_1_f)   
 
 
@@ -262,7 +262,7 @@ plot snake step
 
 # Define linewdith
 lw = 1.5
-fig = plt.figure(figsize=(20,20))
+fig = plt.figure(figsize=(30,30))
 
 n_plots = 3  # Adjust this as needed
 
@@ -271,8 +271,8 @@ x, y = 0.1, 0.1  # Initial position
 
 axes = []
 
-c3_levels_0 = np.arange(10, 55, 10)
-c3_levels_1 = np.arange( 10, 500, 50)
+c3_levels_0 = np.arange(10, 200, 30)
+c3_levels_1 = np.arange( 50, 500, 100)
 c3_levels_2 = np.arange( 10, 500, 100)
 
 energy_levels = [c3_levels_0, c3_levels_1, c3_levels_2]

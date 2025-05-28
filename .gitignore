@@ -1,0 +1,8 @@
+#databases
+
+*.bsp
+*.tls
+*.tpc
+
+__pycache__/
+*.pyc

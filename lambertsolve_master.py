@@ -132,7 +132,7 @@ def lambert_solver(R1, R2, dt, mu, tol=1e-3, maxiter=10000, trajectory='pro'):
     for _ in range(1000):
         if delta_T(x) >= 0:
             break
-    x += 0.1
+        x += 0.1
         
 
     # Complete the Newton Interation function
