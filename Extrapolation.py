@@ -53,9 +53,9 @@ def calc_ephemeris(target, ets, frame, observer):
 	return np.array(spice.spkezr( target, ets, frame, 'NONE', observer )[ 0 ])
 
 # Year - Month - Day
-departure0 = '2011-11-26'         
-arrival0 = '2012-02-10'  
-arrival1 = '2028-01-01'       
+departure0 = '2006-02-15'         
+arrival0 = '2007-11-10'  
+arrival1 = '2010-01-01'       
 
 et_departure = spice.utc2et(departure0)
 et_arrival = spice.utc2et(arrival0)
