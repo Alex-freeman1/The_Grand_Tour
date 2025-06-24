@@ -58,7 +58,7 @@ def calc_ephemeris(target, ets, frame, observer):
 
 # Mission parameters
 departure0 = '2006-02-15'  # Earth departure
-arrival0 = '2007-11-10'    # Mars arrival
+arrival0 = '2007-01-10'    # Mars arrival
 arrival1 = '2010-01-01'    # Jupiter arrival
 
 et_departure = spice.utc2et(departure0)
@@ -83,7 +83,7 @@ try:
         ephem_arrival[:3],    # Mars position at arrival
         tof1,                 # Time of flight in seconds
         mu_sun,               # Sun's gravitational parameter
-        trajectory='pro'      # Prograde trajectory
+        trajectory='retro'      # Prograde trajectory
     )
     print("Earth-Mars Lambert solver successful")
 except Exception as e:
@@ -98,7 +98,7 @@ try:
         ephem_arrival1[:3],   # Jupiter position at arrival
         tof2,                 # Time of flight in seconds
         mu_sun,               # Sun's gravitational parameter
-        trajectory='pro'      # Prograde trajectory
+        trajectory='retro'      # Prograde trajectory
     )
     print("Mars-Jupiter Lambert solver successful")
 except Exception as e:
@@ -143,6 +143,11 @@ else:
     x_traj2 = y_traj2 = z_traj2 = np.array([0])
     print("Second trajectory integration failed")
 
+
+spacecraft_pos1 = np.stack((x_traj1, y_traj1, z_traj1), axis=-1)
+spacecraft_pos2 = np.stack((x_traj2, y_traj2, z_traj2), axis=-1)
+
+
 # Setup orbital data for planets
 start = '2005-11-26' 
 et_start = int(spice.utc2et(start))
@@ -184,7 +189,7 @@ mars_pos = np.array(mars_pos)
 earth_pos = np.array(earth_pos)
 jupiter_pos = np.array(jupiter_pos)
 
-print(f"Generated {len(earth_pos)} position points for each planet")
+
 
 # Set up the 3D figure and axis
 fig = plt.figure(figsize=(14, 10))
@@ -218,7 +223,7 @@ transfer_trail1, = ax.plot([], [], [], 'g-', alpha=0.8, linewidth=2, label='Eart
 transfer_trail2, = ax.plot([], [], [], 'm-', alpha=0.8, linewidth=2, label='Mars-Jupiter')
 
 # Trail data
-trail_length = 200
+trail_length = 50
 earth_trail_data = [[], [], []]
 mars_trail_data = [[], [], []]
 jupiter_trail_data = [[], [], []]
@@ -242,21 +247,26 @@ def animate(frame):
     mars_dot.set_data_3d([mars_current[0]], [mars_current[1]], [mars_current[2]])
     jupiter_dot.set_data_3d([jupiter_current[0]], [jupiter_current[1]], [jupiter_current[2]])  # FIXED
     
-    # Update planet trails
-    for i, pos in enumerate(earth_current):
-        earth_trail_data[i].append(pos)
-        if len(earth_trail_data[i]) > trail_length:
-            earth_trail_data[i].pop(0)
-    
-    for i, pos in enumerate(mars_current):
-        mars_trail_data[i].append(pos)
-        if len(mars_trail_data[i]) > trail_length:
-            mars_trail_data[i].pop(0)
-        
-    for i, pos in enumerate(jupiter_current):
-        jupiter_trail_data[i].append(pos)
-        if len(jupiter_trail_data[i]) > trail_length:
-            jupiter_trail_data[i].pop(0)
+    if frame % 3 == 0:
+       for i, pos in enumerate(earth_current):
+           earth_trail_data[i].append(pos)
+           if len(earth_trail_data[i]) > trail_length:
+               earth_trail_data[i].pop(0)
+
+       for i, pos in enumerate(mars_current):
+           mars_trail_data[i].append(pos)
+           if len(mars_trail_data[i]) > trail_length:
+               mars_trail_data[i].pop(0)
+
+       for i, pos in enumerate(jupiter_current):
+           jupiter_trail_data[i].append(pos)
+           if len(jupiter_trail_data[i]) > trail_length:
+               jupiter_trail_data[i].pop(0)
+
+       earth_trail.set_data_3d(earth_trail_data[0], earth_trail_data[1], earth_trail_data[2])
+       mars_trail.set_data_3d(mars_trail_data[0], mars_trail_data[1], mars_trail_data[2])
+       jupiter_trail.set_data_3d(jupiter_trail_data[0], jupiter_trail_data[1], jupiter_trail_data[2])
+
     
     earth_trail.set_data_3d(earth_trail_data[0], earth_trail_data[1], earth_trail_data[2])
     mars_trail.set_data_3d(mars_trail_data[0], mars_trail_data[1], mars_trail_data[2])
@@ -304,9 +314,11 @@ def animate(frame):
             transfer_trail1, transfer_trail2)
 
 # Create animation
-total_frames = 2000
-anim = animation.FuncAnimation(fig, animate, frames=total_frames, 
-                             interval=20, blit=True, repeat=True)
+total_frames = 4000
+
+#Updates only every N frames
+N = 5
+anim = animation.FuncAnimation(fig, animate, frames=range(0, total_frames, N), interval=1, blit=False, repeat=False)
 
 # Add legend and show
 ax.legend()
