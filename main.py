@@ -37,17 +37,18 @@ spice.furnsh("data\latest_leapseconds (1).tls")
 
 # Input code - this is variable, please change to whatever you want
 
-planet0 = 'Earth' #Case sensitive
-planet1 = 'Mars'
+planet0 = 'Mars' #Case sensitive
+planet1 = 'Jupiter'
 
-departure0 = '2026-06-20'         # Intial departure date
-departure1 = '2030-11-07'         # Final departure date
-arrival0 = '2026-12-01'         # Initial arrival date
-arrival1 = '2031-02-24'          # Final arrival date
+#year / month / day
+departure0 = '2006-02-01'         # Intial departure date
+departure1 = '2020-12-01'          # Final departure date
+arrival0 = '2009-01-01'        # Initial arrival date
+arrival1 = '2030-01-01'          # Final arrival date
 
 
 # Step size (in days)
-step_size = 10
+step_size = 50
 
 # --------------------
 
@@ -185,7 +186,8 @@ normed_arrivals   = (et_arrivals  - et_arrivals[0])/(3600.0 * 24.0)
 dep_mesh, arr_mesh = np.meshgrid( normed_departures, normed_arrivals )
 
 # Create levels arrays
-c3_levels = np.arange( 10, 50, 5)
+#c3_levels = np.arange( 10, 50, 5)
+c3_levels = np.arange( 50, 500, 100)
 
 # c3_levels_long = np.arange( 1900, 3900, 100)
 

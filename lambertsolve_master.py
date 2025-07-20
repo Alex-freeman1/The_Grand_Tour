@@ -13,6 +13,7 @@ Lambert's Problem Tools
 
 # Third-party Libraries
 import numpy as np
+import math
 
 '''
 This is helpful Python script to run necessary functions to solve Lambert's Problem.
@@ -24,6 +25,11 @@ Arabian Journal for Science and Engineering, 88-94.'
 This derives all the variables that this script uses
 # 
 '''
+
+
+def norm(vec):
+    return np.linalg.norm(vec)
+
 
 # This is a function which is derived from Newton's Interation Method,
 # It takes in some x value as an initial guess and changes it slightly until some 
@@ -46,6 +52,36 @@ def newton_iteration(f, df, x0, tol, max_iter=1000):
 
     raise RuntimeError("Newton iteration did not converge.")
     
+
+def fdiff_cs(f, x, dx=1e-6):
+    return (f(x + dx) - f(x - dx)) / (2 * dx)
+
+
+def newton_root_single_fd(f, x0, tol=1e-10, max_steps=200, diff_step=1e-6):
+    """
+    Find root of single-variable function f(x) using Newton's method
+    with finite difference derivative approximation.
+    """
+    # Initial finite difference derivative and delta_x calculation
+    delta_x = f(x0) / fdiff_cs(f, x0, diff_step)
+
+    for n in range(max_steps):
+        x0 -= delta_x
+        delta_x = f(x0) / fdiff_cs(f, x0, diff_step)
+
+        if abs(delta_x) < tol:
+            return x0, n
+
+    raise RuntimeError("Newton's root solver (finite difference) did not converge.")
+    
+
+def vecs2angle(v0, v1):
+	'''
+	Calculate angle between 2 vectors
+	'''
+	angle = math.acos( np.dot( v0, v1 ) / norm( v0 ) / norm( v1 ) )
+
+	return angle
 
 
 # Complete Universal Lambert Solver as laid out in the research paper
@@ -161,5 +197,9 @@ def lambert_solver(R1, R2, dt, mu, tol=1e-3, maxiter=10000, trajectory='pro'):
         # Return the velocity vectors for leaving Earth and arriving 
         # At Mars respectively
         return V1, V2
+    
+    
+
+
     
 
