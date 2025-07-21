@@ -33,7 +33,7 @@ spice.furnsh("data\latest_leapseconds (1).tls")
 
 
 # Step size (in days)
-step_size = 50
+#step_size = 50
 
 # --------------------
 
@@ -49,7 +49,7 @@ cutoff_v = 100
 cutoff_c3 = cutoff_v ** 2
 
 #Convert from days into seconds
-step = step_size*3600*24
+
 
 
 #Define function to get the emphemeris data - array holding positions and velocity vectors
@@ -57,31 +57,47 @@ def calc_ephemeris(target, ets, frame, observer):
 	return np.array(spice.spkezr( target, ets, frame, 'NONE', observer )[ 0 ])
 
 	
+# Returns the normalised vector
 def norm(vec):
     return np.linalg.norm(vec)
 
-
+# Function that uses parallel computing to loop through each planet journey and calculate the lambert transfers
+# It returns the C_3 energy of each transfer in a 2 dimensional array with the axis as the departure and arrival dates
 def johann(dep_planet, arr_planet, departure0, departure1, arrival0, arrival1):
     
+    if dep_planet == "EARTH" or "MARS BARYCENTER":
+        step_size = 50
+    else:
+        step_size = 300
+    
+    step = step_size*3600*24
+    
+    
+    # Sets the depature and arrival arrays using the SPICE utc2et function
     et_departures = np.arange(spice.utc2et(departure0), spice.utc2et(departure1) + step, step)
     et_arrivals   = np.arange(spice.utc2et(arrival0), spice.utc2et(arrival1) + step, step)
     
-    
+    # Gets length of these arrays
     ds = len(et_departures)
     as_ = len(et_arrivals)
+    
+    # Begins 2 dimensional arrays to hold the data
     C3_shorts     = np.zeros( (as_, ds) )
     C3_longs      = np.zeros( (as_, ds) )
     #tofs          = np.zeros( (as_, ds) )
+    
+    # Calculates how many entries exist
     total = as_ * ds   
     
     # Retrieve the position and velocity vectors and store in a sixth-lengthed vector from function above
     ephem_departures = [calc_ephemeris(departure_planet, et, FRAME, OBSERVER) for et in et_departures]
     ephem_arrivals = [calc_ephemeris(arrival_planet, et, FRAME, OBSERVER) for et in et_arrivals]
     
+    # Function to pass into the parallel computing job function
     def compute_lambert_entry(states_depart, states_arrive, tof, sun_mu, cutoff_c3):
         from numpy.linalg import norm
         
-    
+        
         if tof <= 0 or norm(states_depart[:3] - states_arrive[:3]) < 1e6:
             return cutoff_c3, cutoff_c3, tof
     
@@ -156,106 +172,124 @@ def loop_bodies(planeti, planetf):
    
  
 
-'''
-
-minium value finder
 
 '''
-
-    
+Earth - Mars
+'''    
 planet0 = 'Earth' #Case sensitive
 planet1 = 'Mars'
-# Dates for Launchwindow - wikipedia
-
-
-dep_dates_0 = '2006-02-01'         # Intial departure date
-dep_dates_1 = '2020-11-07'         # Final departure date
-arr_dates_0 = '2006-02-01'         # Initial arrival date
-arr_dates_1 = '2020-12-01'          # Final arrival date 
 # Holds the spice name of the planets  
 departure_planet, arrival_planet = loop_bodies(planet0, planet1)
-
-# if __name__ == "__main__":
-#     johann(
-#         dep_planet='Earth',
-#         arr_planet='Mars',
-#         departure0='2025-01-01',
-#         departure1='2025-06-01',
-#         arrival0='2025-06-01',
-#         arrival1='2026-01-01'
-#     )
+dep_dates_0 = '1960-02-01'         # Intial departure date
+dep_dates_1 = '1970-11-07'         # Final departure date
+arr_dates_0 = '1960-02-01'         # Initial arrival date
+arr_dates_1 = '1970-12-01'          # Final arrival date 
 johann_1 = johann(departure_planet, arrival_planet, dep_dates_0, dep_dates_1, arr_dates_0, arr_dates_1)   
 
 
- 
-planet0 = 'Mars' #Case sensitive
+'''
+Mars - Jupiter
+'''   
+planet0 = 'Mars' 
 planet1 = 'Jupiter'
 departure_planet, arrival_planet = loop_bodies(planet0, planet1)
-dep_dates_1_i = '2006-02-01'       
-dep_dates_1_f = '2020-12-01'  
-arr_dates_1_i = '2009-01-01'         
-arr_dates_1_f = '2030-01-01'
+dep_dates_1_i = '1960-02-01'       
+dep_dates_1_f = '1970-12-01'  
+arr_dates_1_i = '1963-01-01'         
+arr_dates_1_f = '1990-01-01'
 johann_2 = johann(departure_planet, arrival_planet, dep_dates_1_i, dep_dates_1_f, arr_dates_1_i, arr_dates_1_f)   
 
 
 
-
-planet0 = 'Jupiter' #Case sensitive
+'''
+Jupiter - Saturn
+''' 
+planet0 = 'Jupiter' 
 planet1 = 'Saturn'
 departure_planet, arrival_planet = loop_bodies(planet0, planet1)
-dep_dates_2_i =  "2009-01-01"
-dep_dates_2_f = "2030-01-01"
-arr_dates_2_i = "2011-01-01"
-arr_dates_2_f = "2040-01-01"
+dep_dates_2_i =  "1963-01-01"
+dep_dates_2_f = "1990-01-01"
+arr_dates_2_i = "1967-01-01"
+arr_dates_2_f = "2010-01-01"
 johann_3 = johann(departure_planet, arrival_planet, dep_dates_2_i, dep_dates_2_f, arr_dates_2_i, arr_dates_2_f)   
 
 
+'''
+Saturn - Uranus
+''' 
+planet0 = 'Saturn' 
+planet1 = 'Uranus'
+departure_planet, arrival_planet = loop_bodies(planet0, planet1)
+arrival_planet = "URANUS BARYCENTER"
+dep_dates_3_i =  "1967-01-01"
+dep_dates_3_f = "2010-01-01"
+arr_dates_3_i = "1974-01-01"
+arr_dates_3_f = "2036-01-01"
+johann_4 = johann(departure_planet, arrival_planet, dep_dates_3_i, dep_dates_3_f, arr_dates_3_i, arr_dates_3_f)   
 
 
-
-min_index = np.unravel_index(np.argmin(johann_3[2]), johann_3[2].shape)
-min_value = johann_3[2][min_index]
-row, col = map(int, min_index)
-print(f"minimum value exists at {row, col}")
-saturnminline = johann_3[0][col]
-
-# Using this line extrapolate the data for this column for the transfer to jupiter
-
-jupiter_axis = johann_2[2][col, :]
-#print(jupiter_axis)
-
-#Arbitary mask of x - determined by energy constraints
-mask = jupiter_axis < 45
-indices = np.where(mask)[0]
-values = jupiter_axis[mask]
-#print("Indices under 200:", indices)
-#print("Values under 200:", values)
-depart_indicies = johann_2[0][indices]
-
-
-# Going through each line, for example 12
-first_i = indices[0]
-first_id = depart_indicies[0]
-mars_axis = johann_1[2][first_i, :]
-mask2 = mars_axis < 50
-indices2 = np.where(mask2)[0]
-depart_indicies2 = johann_1[1][indices2]
-
-print("\n")
-print("Ideal days to leave are:")
-print(depart_indicies2)
-print("These are equivalent to:")
-start_date = datetime.strptime(dep_dates_0, '%Y-%m-%d')
-new_date1 = start_date + timedelta(days=300)
-new_date2 = start_date + timedelta(days=700)
-print(new_date1.strftime('%Y-%m-%d'))
-print(new_date2.strftime('%Y-%m-%d'))
+'''
+Uranus - Neptune
+''' 
+departure_planet = "URANUS BARYCENTER"
+arrival_planet = "NEPTUNE BARYCENTER"
+dep_dates_4_i =  "1974-01-01"
+dep_dates_4_f = "2036-01-01"
+arr_dates_4_i = "1984-01-01"
+arr_dates_4_f = "2045-01-01"
+johann_5 = johann(departure_planet, arrival_planet, dep_dates_4_i, dep_dates_4_f, arr_dates_4_i, arr_dates_4_f)   
 
 
 
 
-date_axis = [(johann_1[0], johann_1[1]), (johann_2[0], johann_2[1]), (johann_3[0], johann_3[1])]
-c3_shorts_arrays = [johann_1[2], johann_2[2], johann_3[2]]
+
+
+'''
+minium value finder
+'''
+# min_index = np.unravel_index(np.argmin(johann_3[2]), johann_3[2].shape)
+# min_value = johann_3[2][min_index]
+# row, col = map(int, min_index)
+# print(f"minimum value exists at {row, col}")
+# saturnminline = johann_3[0][col]
+
+# # Using this line extrapolate the data for this column for the transfer to jupiter
+
+# jupiter_axis = johann_2[2][col, :]
+# #print(jupiter_axis)
+
+# #Arbitary mask of x - determined by energy constraints
+# mask = jupiter_axis < 45
+# indices = np.where(mask)[0]
+# values = jupiter_axis[mask]
+# #print("Indices under 200:", indices)
+# #print("Values under 200:", values)
+# depart_indicies = johann_2[0][indices]
+
+
+# # Going through each line, for example 12
+# first_i = indices[0]
+# first_id = depart_indicies[0]
+# mars_axis = johann_1[2][first_i, :]
+# mask2 = mars_axis < 50
+# indices2 = np.where(mask2)[0]
+# depart_indicies2 = johann_1[1][indices2]
+
+# print("\n")
+# print("Ideal days to leave are:")
+# print(depart_indicies2)
+# print("These are equivalent to:")
+# start_date = datetime.strptime(dep_dates_0, '%Y-%m-%d')
+# new_date1 = start_date + timedelta(days=300)
+# new_date2 = start_date + timedelta(days=700)
+# print(new_date1.strftime('%Y-%m-%d'))
+# print(new_date2.strftime('%Y-%m-%d'))
+
+
+
+# Create arrays to hold the data from the johann function, all three indicies
+date_axis = [(johann_1[0], johann_1[1]), (johann_2[0], johann_2[1]), (johann_3[0], johann_3[1]), (johann_4[0], johann_4[1]), (johann_5[0], johann_5[1])]
+c3_shorts_arrays = [johann_1[2], johann_2[2], johann_3[2], johann_4[2], johann_5[2]]
 
 
 '''
@@ -264,27 +298,37 @@ plot snake step
 
 # Define linewdith
 lw = 0.5
-fig = plt.figure(figsize=(30,30))
+fig = plt.figure(figsize=(100,100))   
 
-n_plots = 3  # Adjust this as needed
 
-w, h = 0.3, 0.3  # Size of each subplot
-x, y = 0.1, 0.1  # Initial position
+# Let the number plots be a variable n_plots
+n_plots = 5  
 
-axes = []
+# Size of each subplot
+w, h = 0.25, 0.25  
 
+# Initial position
+x, y = 0.1, 0.1  
+
+axes = []                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+
+# Define levels for the contour plot 
 c3_levels_0 = np.arange(10, 200, 50)
 c3_levels_1 = np.arange( 50, 500, 50)
 c3_levels_2 = np.arange( 10, 500, 100)
 
-energy_levels = [c3_levels_0, c3_levels_1, c3_levels_2]
+energy_levels = [c3_levels_0, c3_levels_1, c3_levels_2, c3_levels_2, c3_levels_2]
 
+# Name the different segments
+segment_names = ["Earth to Mars", "Mars to Jupiter", "Jupiter to Saturn", "Saturn to Uranus", "Uranus to Neptune"]
 
-segment_names = ["Earth to Mars", "Mars to Jupiter", "Jupiter to Saturn"]
+# Create a tuple to hold all the dates for each porkchop plot
 date_names = (
     (dep_dates_0, dep_dates_1, arr_dates_0, arr_dates_1),
     (dep_dates_1_i, dep_dates_1_f, arr_dates_1_i, arr_dates_1_f),
-    (dep_dates_2_i, dep_dates_2_f, arr_dates_2_i, arr_dates_2_f)
+    (dep_dates_2_i, dep_dates_2_f, arr_dates_2_i, arr_dates_2_f),
+    (dep_dates_3_i, dep_dates_3_f, arr_dates_3_i, arr_dates_3_f),
+    (dep_dates_4_i, dep_dates_4_f, arr_dates_4_i, arr_dates_4_f)
 )
 for i in range(n_plots):
     
@@ -308,21 +352,21 @@ for i in range(n_plots):
         ax.xaxis.set_label_position('top')
         ax.grid(True, linestyle='--', color='gray', linewidth=0.5)
         
-        if i == 0:
-            for each in depart_indicies:
-                ax.axhline(y = each, color='red', linestyle='--')
+        # if i == 0:
+        #     for each in depart_indicies:
+        #         ax.axhline(y = each, color='red', linestyle='--')
             
-            ax.axhline(y = first_id, color='blue', linestyle='--')
+        #     ax.axhline(y = first_id, color='blue', linestyle='--')
                 
-            for each2 in depart_indicies2:
-                ax.axvline(x = each2, color='blue', linestyle='--')
-        if i == 2:
-            ax.axvline(x=saturnminline, color='red', linestyle='--')
+        #     for each2 in depart_indicies2:
+        #         ax.axvline(x = each2, color='blue', linestyle='--')
+        # if i == 2:
+        #     ax.axvline(x=saturnminline, color='red', linestyle='--')
             
         
         
         
-    # Odd plots: rotated
+    # Odd plots: rotated and flipped
     else:
         ax.grid(True)
         # ref_ax = axes[i-1]
@@ -337,17 +381,18 @@ for i in range(n_plots):
         ax.xaxis.set_label_position('bottom')
         ax.yaxis.set_ticks_position('right')
         ax.yaxis.set_label_position('right')
-        if i == 1:
-            ax.axvline(x=saturnminline, color='red', linestyle='--')
+        
+        # if i == 1:
+        #     ax.axvline(x=saturnminline, color='red', linestyle='--')
             
-        for each in depart_indicies:
-            ax.axhline(y = each, color='red', linestyle='--')
+        # for each in depart_indicies:
+        #     ax.axhline(y = each, color='red', linestyle='--')
 
         
 
     ax.set_title(f"Segment {segment_names[i]}", fontsize=8)
     ax.grid(True, linestyle='--', color='gray', linewidth=0.5)
-    axes.append(ax)
+    axes.append(ax) 
 
     # Snake step layout
     if i % 2 == 0:
