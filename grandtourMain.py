@@ -316,15 +316,16 @@ axes = []
 c3_levels_0 = np.arange(10, 200, 50)
 c3_levels_1 = np.arange( 50, 500, 50)
 c3_levels_2 = np.arange( 10, 500, 100)
+c3_levels_3 = np.arange( 10, 1000, 30)
 
-energy_levels = [c3_levels_0, c3_levels_1, c3_levels_2, c3_levels_2, c3_levels_2]
+energy_levels = [c3_levels_0, c3_levels_1, c3_levels_2, c3_levels_3, c3_levels_3]
 
 # Name the different segments
 segment_names = ["Earth to Mars", "Mars to Jupiter", "Jupiter to Saturn", "Saturn to Uranus", "Uranus to Neptune"]
 
 # Create a tuple to hold all the dates for each porkchop plot
 date_names = (
-    (dep_dates_0, dep_dates_1, arr_dates_0, arr_dates_1),
+    (dep_dates_0, dep_dates_1, arr_dates_0, arr_dates_1),  
     (dep_dates_1_i, dep_dates_1_f, arr_dates_1_i, arr_dates_1_f),
     (dep_dates_2_i, dep_dates_2_f, arr_dates_2_i, arr_dates_2_f),
     (dep_dates_3_i, dep_dates_3_f, arr_dates_3_i, arr_dates_3_f),

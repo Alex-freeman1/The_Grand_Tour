@@ -18,9 +18,18 @@ spice.furnsh("data\de440.bsp")
 spice.furnsh("data\latest_leapseconds (1).tls")
 
 planet0 = 'Earth' #Case sensitive
-planet1 = 'Mars'
-planet2 = 'Jupiter'
+planet1 = 'Jupiter'
+planet2 = 'Saturn'
+planet3 = 'URANUS BARYCENTER'
+planet4 = 'NEPTUNE BARYCENTER'
 
+orbital_periods = {
+    'EARTH': 365.25 * 86400,  # seconds in one Earth year
+    'JUPITER': 4333 * 86400,
+    'SATURN': 10759 * 86400,
+    'URANUS': 30687 * 86400,
+    'NEPTUNE': 60190 * 86400
+}
 
 pd_bodies = pd.bodies
 for i in range(10):
@@ -53,68 +62,50 @@ def calc_ephemeris(target, ets, frame, observer):
 	return np.array(spice.spkezr( target, ets, frame, 'NONE', observer )[ 0 ])
 
 # Year - Month - Day
-departure0 = '2006-02-15'         
-arrival0 = '2007-11-10'  
-arrival1 = '2010-01-01'       
+departure0 = '1977-08-20'         
+arrival0 = '1979-07-09' 
+arrival1 = '1980-11-12'
+arrival2 = '1986-01-24' 
+arrival3 = '1990-08-25'         
 
-et_departure = spice.utc2et(departure0)
-et_arrival = spice.utc2et(arrival0)
-et_arrival1 = spice.utc2et(arrival1)
+et_0 = spice.utc2et(departure0)
+et_1 = spice.utc2et(arrival0)
+et_2 = spice.utc2et(arrival1)
+et_3 = spice.utc2et(arrival2)
+et_4 =  spice.utc2et(arrival3)
 
-ephem_departure = calc_ephemeris(departure_planet, et_departure, FRAME, OBSERVER)
-ephem_arrival = calc_ephemeris(arrival_planet0, et_arrival, FRAME, OBSERVER)
-ephem_arrival1 = calc_ephemeris(arrival_planet1, et_arrival1, FRAME, OBSERVER)
+et_times = [et_0, et_1, et_2, et_3, et_4]
 
-tof1 = et_arrival - et_departure
-tof2 = et_arrival1 - et_arrival
+ephem_0 = calc_ephemeris(departure_planet, et_times[0], FRAME, OBSERVER)
+ephem_1 = calc_ephemeris(arrival_planet0, et_times[1], FRAME, OBSERVER)
+ephem_2 = calc_ephemeris(arrival_planet1, et_times[2], FRAME, OBSERVER)
+ephem_3 = calc_ephemeris('URANUS BARYCENTER', et_times[3], FRAME, OBSERVER)
+ephem_4 = calc_ephemeris('NEPTUNE BARYCENTER', et_times[4], FRAME, OBSERVER)
 
-try:
-    v_sc_depart_short, v_sc_arrive_short = lt.lambert_solver(
-        # states_arrive is a 6 element vector, the first three represent the position vector: x,y,z
-        # the final three represent the velocity vector: x,y,z.
-        # therefore :3 is taking the first three position vectors passing it as R1
-        ephem_departure[ :3 ],
-        ephem_arrival[ :3 ], #R2
-        tof1,
-        mu_sun,
-        trajectory='pro'
-    )
-except:
-    v_sc_depart_short = np.array( [1000, 1000, 1000] )
-    v_sc_arrive_short = np.array( [1000, 1000, 1000] )
+tofs = []
+
+for i in range(len(et_times) - 1):
+    tofs.append(et_times[i+1] - et_times[i])
 
 
- 
-x0, y0, z0 = ephem_departure[:3] 
-vx0, vy0, vz0 = v_sc_depart_short
+def lambert_sol(dep, arr, tof):
+    try:
+        v_sc_depart_short, v_sc_arrive_short = lt.lambert_solver(
+            # states_arrive is a 6 element vector, the first three represent the position vector: x,y,z
+            # the final three represent the velocity vector: x,y,z.
+            # therefore :3 is taking the first three position vectors passing it as R1
+            dep[ :3 ],
+            arr[ :3 ], #R2
+            tof,
+            mu_sun,
+            trajectory='pro'
+        )
+    except Exception as e:
+        print(f"Lambert solution failed: {e}")
+        raise
+    
+    return v_sc_depart_short
 
-x1, y1, z1 = ephem_arrival[:3] 
-
-
-try:
-    v_sc_depart_short, v_sc_arrive_short = lt.lambert_solver(
-        # states_arrive is a 6 element vector, the first three represent the position vector: x,y,z
-        # the final three represent the velocity vector: x,y,z.
-        # therefore :3 is taking the first three position vectors passing it as R1
-        ephem_arrival[ :3 ],
-        ephem_arrival1[ :3 ], #R2
-        tof2,
-        mu_sun,
-        trajectory='pro'
-    )
-except:
-    v_sc_depart_short = np.array( [1000, 1000, 1000] )
-    v_sc_arrive_short = np.array( [1000, 1000, 1000] )
-
-
-vx1, vy1, vz1 = v_sc_depart_short
-x2,y2,z2 = ephem_arrival1[:3] 
-
-
-
-# Initial state vector
-X0 = [x0, y0, z0, vx0, vy0, vz0]   
-X1 = [x1, y1, z1, vx1, vy1, vz1]
 
 
 def two_body(t, y):
@@ -125,54 +116,64 @@ def two_body(t, y):
     return np.concatenate((v, a))
 
 
+ephems = [ephem_0, ephem_1, ephem_2, ephem_3, ephem_4]
+n_legs = len(ephems) - 1  # 3 legs
+X_list = []  # Initial state vectors
+t_spans = []
+t_evals = []
+solutions = []
 
+# Generate initial state vectors and time spans
+for i in range(n_legs):
+    r = ephems[i][:3]
+    v = lambert_sol(ephems[i], ephems[i+1], tofs[i])
+    X = list(r) + list(v)
+    X_list.append(X)
+    
+    dt = et_times[i+1] - et_times[i]
+    t_spans.append((0, dt))
+    t_evals.append(np.linspace(0, dt, 1000))
 
-t_span0 = (0, (et_arrival - et_departure))  # assuming t1, t2 are in seconds
-t_eval0 = np.linspace(t_span0[0], t_span0[1], 1000) 
+# Solve using solve_ivp
+for i in range(n_legs):
+    sol = solve_ivp(
+        two_body, t_spans[i], X_list[i], t_eval=t_evals[i],
+        method='RK45', rtol=1e-12, atol=1e-12)
+    solutions.append(sol)
+    
+solution0, solution1, solution2, solution3 = solutions
 
-t_span1 = (0, (et_arrival1 - et_arrival))  # assuming t1, t2 are in seconds
-t_eval1 = np.linspace(t_span1[0], t_span1[1], 1000) 
-
-# Solve the system using solve_ivp with specified tolerances using RK45
-solution0 = solve_ivp(
-    two_body, t_span0, X0, t_eval=t_eval0, method='RK45',
-    rtol=1e-12, atol=1e-12)
-
-solution1 = solve_ivp(
-    two_body, t_span1, X1, t_eval=t_eval1, method='RK45',
-    rtol=1e-12, atol=1e-12)
-
-
-
-step = 1000  # in seconds
+step = 10000  # in seconds
 et0 = spice.utc2et(departure0)  # reference start time
 
-orbital_periods = {
-    'EARTH': 365.25 * 86400,  # seconds in one Earth year
-    'MARS': 686.98 * 86400,   # seconds in one Mars year
-    'JUPITER': 4333 * 86400
-}
 
 et_earth = np.arange(et0, et0 + orbital_periods['EARTH'], step)
-et_mars  = np.arange(et0, et0 + orbital_periods['MARS'],  step)
-et_jupiter = np.arange(et0, et0 + orbital_periods['JUPITER'],  step)
+et_jupiter  = np.arange(et0, et0 + orbital_periods['JUPITER'],  step)
+et_saturn = np.arange(et0, et0 + orbital_periods['SATURN'],  step)
+et_uranus = np.arange(et0, et0 + orbital_periods['URANUS'],  step)
+et_neptune = np.arange(et0, et0 + orbital_periods['NEPTUNE'],  step)
+
 
 
 r_earth = np.array([calc_ephemeris(departure_planet, t, FRAME, OBSERVER)[:3] for t in et_earth])
-r_mars  = np.array([calc_ephemeris(arrival_planet0,  t, FRAME, OBSERVER)[:3] for t in et_mars])
-r_jupiter = np.array([calc_ephemeris('JUPITER BARYCENTER',  t, FRAME, OBSERVER)[:3] for t in et_jupiter])
+r_jupiter  = np.array([calc_ephemeris('JUPITER BARYCENTER',  t, FRAME, OBSERVER)[:3] for t in et_jupiter])
+r_saturn = np.array([calc_ephemeris('SATURN BARYCENTER',  t, FRAME, OBSERVER)[:3] for t in et_saturn])
+r_uranus = np.array([calc_ephemeris('URANUS BARYCENTER',  t, FRAME, OBSERVER)[:3] for t in et_uranus])
+r_neptune = np.array([calc_ephemeris('NEPTUNE BARYCENTER',  t, FRAME, OBSERVER)[:3] for t in et_neptune])
 
 
 # Extract x, y, z components
 x_earth, y_earth, z_earth = r_earth[:, 0], r_earth[:, 1], r_earth[:, 2]
-x_mars, y_mars, z_mars = r_mars[:, 0], r_mars[:, 1], r_mars[:, 2]
 x_jupiter, y_jupiter, z_jupiter = r_jupiter[:, 0], r_jupiter[:, 1], r_jupiter[:, 2]
+x_saturn, y_saturn, z_saturn = r_saturn[:, 0], r_saturn[:, 1], r_saturn[:, 2]
+x_uranus, y_uranus, z_uranus = r_uranus[:, 0], r_uranus[:, 1], r_uranus[:, 2]
+x_neptune, y_neptune, z_neptune = r_neptune[:, 0], r_neptune[:, 1], r_neptune[:, 2]
 
 # Extract components
 x, y, z = solution0.y[0], solution0.y[1], solution0.y[2]
-
 xj1, yj1, zj1 = solution1.y[0], solution1.y[1], solution1.y[2]
-#vx, vy, vz = solution.y[3], solution.y[4], solution.y[5]
+xs1, ys2, zs3 = solution2.y[0], solution2.y[1], solution2.y[2]
+xu1, yu2, zu3 = solution3.y[0], solution3.y[1], solution3.y[2]
 
 
 
@@ -184,14 +185,18 @@ max_range = np.max(np.abs(x_jupiter))
 ax.set_zlim([-max_range, max_range])
 
 
-r0_earth = x0, y0, z0 
-r1_mars = x1,y1,z1
-r2_jupiter = x2,y2,z2 
+r0_earth = ephems[0][:3] 
+r1_jupiter = ephems[1][:3]
+r2_saturn = ephems[2][:3]
+r3_uranus = ephems[3][:3]
+r4_neptune = ephems[4][:3]
 
 # Plot planet's orbit
 ax.plot(x_earth, y_earth, z_earth, label="Earth's Orbit", color="b")
-ax.plot(x_mars, y_mars, z_mars, label="Mar's Orbit", color="r")
-ax.plot(x_jupiter, y_jupiter, z_jupiter, label="Jupiter's Orbit", color="g")
+ax.plot(x_jupiter, y_jupiter, z_jupiter, label="Jupiter's Orbit", color="r")
+ax.plot(x_saturn, y_saturn, z_saturn, label="Saturn's Orbit", color="g")
+ax.plot(x_uranus, y_uranus, z_uranus, label="Uranus's Orbit", color="c")
+ax.plot(x_neptune, y_neptune, z_neptune, label="Neptunes's Orbit", color="b")
 
 #Mark the Sun at (0,0,0)# Mark the Sun at (0,0,0)
 ax.scatter(0, 0, 0, color='yellow', s=100, label="Sun")
@@ -199,10 +204,14 @@ ax.scatter(0, 0, 0, color='yellow', s=100, label="Sun")
 
 ax.plot(x, y,z, label='Lambert Trajectory')
 ax.plot(xj1, yj1, zj1, label='Lambert Trajectory')
+ax.plot(xs1, ys2, zs3, label='Lambert Trajectory')
+ax.plot(xu1, yu2, zu3, label='Lambert Trajectory')
 
 ax.scatter(*r0_earth, color='blue', marker='o', s=100, label='Earth Departure')
-ax.scatter(*r1_mars, color='red', marker='o', s=100, label='Mars Arrival')
-ax.scatter(*r2_jupiter, color='green', marker='o', s=100, label='Jupiter Arrival')
+ax.scatter(*r1_jupiter, color='red', marker='o', s=100, label='Jupiter Arrival')
+ax.scatter(*r2_saturn, color='green', marker='o', s=100, label='Saturn Arrival')
+ax.scatter(*r3_uranus, color='pink', marker='o', s=100, label='Uranus Arrival')
+ax.scatter(*r4_neptune, color='blue', marker='o', s=100, label='Neptune Arrival')
 ax.set_xlabel("X (km)")
 ax.set_ylabel("Y (km)")
 ax.set_zlabel("Z (km)")
