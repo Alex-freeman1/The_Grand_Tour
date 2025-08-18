@@ -30,6 +30,7 @@ Setting up Ephemeris Data and Kernels
 '''
 
 
+
 # Establish Kernels
 spice.furnsh("de432s\de432s.bsp")
 spice.furnsh("data\latest_leapseconds (1).tls")
@@ -37,7 +38,7 @@ spice.furnsh("data\latest_leapseconds (1).tls")
 
 # Input code - this is variable, please change to whatever you want
 
-planet0 = 'Mars' #Case sensitive
+planet0 = 'Earth' #Case sensitive
 planet1 = 'Jupiter'
 
 #year / month / day
@@ -77,7 +78,6 @@ arrival_planet = pd_req1['spice_name']
 
 
 
-
 #cut off velocity (if the lambert solver fails to converge)
 cutoff_v = 100
 cutoff_c3 = cutoff_v ** 2
@@ -114,9 +114,21 @@ Using Lambert's Solver to return the required velocities
 
           
 
-#Define function to get the emphemeris data - array holding positions and velocity vectors
+earth_radius = 6378.137  # km
+
+
 def calc_ephemeris(target, ets, frame, observer):
-	return np.array(spice.spkezr( target, ets, frame, 'NONE', observer )[ 0 ])
+    state = np.array(spice.spkezr(target, ets, frame, 'NONE', observer)[0])
+    pos = state[:3]
+    vel = state[3:]
+
+    if target.lower() == "earth":
+        # Example: unit vector radially outward from Earth's center
+        vec = pos / np.linalg.norm(pos)
+        h = 500.0  # height in km
+        pos = pos + vec * (earth_radius + h)
+
+    return np.concatenate([pos, vel])
 
 	
 def norm(vec):
@@ -130,12 +142,10 @@ ephem_arrivals = [calc_ephemeris(arrival_planet, et, FRAME, OBSERVER) for et in 
 
     
 
-def compute_lambert_entry(na, nd):
-    #print( f'{na + 1} / {as_}.' )
-    states_depart = ephem_departures[nd]
-    states_arrive = ephem_arrivals[na]
-    tof = et_arrivals[na] - et_departures[nd]
-
+def compute_lambert_entry(states_depart, states_arrive, tof, sun_mu, cutoff_c3):
+    from numpy.linalg import norm
+    
+    
     if tof <= 0 or norm(states_depart[:3] - states_arrive[:3]) < 1e6:
         return cutoff_c3, cutoff_c3, tof
 
@@ -151,15 +161,20 @@ def compute_lambert_entry(na, nd):
 
     C3_short = min(norm(v_sc_depart_short - states_depart[3:])**2, cutoff_c3)
     C3_long = min(norm(v_sc_depart_long - states_depart[3:])**2, cutoff_c3)
-    
+
     return C3_short, C3_long, tof
 
 
 results = Parallel(n_jobs=-1)(
-    delayed(compute_lambert_entry)(na, nd)
-    for na in tqdm(range(as_), desc="na loop")
+    delayed(compute_lambert_entry)(
+        ephem_departures[nd],
+        ephem_arrivals[na],
+        et_arrivals[na] - et_departures[nd],
+        sun_mu,
+        cutoff_c3
+    )
+    for na in tqdm(range(as_), desc="Calculating Transfer")
     for nd in range(ds)
-    
 )
 
 for idx, (C3_short, C3_long, tof) in enumerate(results):
@@ -167,7 +182,7 @@ for idx, (C3_short, C3_long, tof) in enumerate(results):
     nd = idx % ds
     C3_shorts[na, nd] = C3_short
     C3_longs[na, nd] = C3_long
-    tofs[na, nd] = tof
+    #tofs[na, nd] = tof
     
 
 # Prints the combination numver its calculating
@@ -232,7 +247,7 @@ plt.legend(
 
 
 # ax.set_ylim([0, 600])
-ax.set_title('Porkchop Plot from Earth to Mars', fontsize = 20 )
+ax.set_title('Porkchop Plot from Earth to Jupiter', fontsize = 20 )
 ax.set_ylabel( 'Arrival (Days Past {})'.format(arrival0) , fontsize = 15 )
 ax.set_xlabel( 'Departure (Days Past {})'.format(departure0), fontsize = 15 )
 plt.show()

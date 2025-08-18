@@ -247,43 +247,43 @@ johann_5 = johann(departure_planet, arrival_planet, dep_dates_4_i, dep_dates_4_f
 '''
 minium value finder
 '''
-# min_index = np.unravel_index(np.argmin(johann_3[2]), johann_3[2].shape)
-# min_value = johann_3[2][min_index]
-# row, col = map(int, min_index)
-# print(f"minimum value exists at {row, col}")
-# saturnminline = johann_3[0][col]
+min_index = np.unravel_index(np.argmin(johann_3[2]), johann_3[2].shape)
+min_value = johann_3[2][min_index]
+row, col = map(int, min_index)
+print(f"minimum value exists at {row, col}")
+saturnminline = johann_3[0][col]
 
-# # Using this line extrapolate the data for this column for the transfer to jupiter
+# Using this line extrapolate the data for this column for the transfer to jupiter
 
-# jupiter_axis = johann_2[2][col, :]
-# #print(jupiter_axis)
+jupiter_axis = johann_2[2][col, :]
+#print(jupiter_axis)
 
-# #Arbitary mask of x - determined by energy constraints
-# mask = jupiter_axis < 45
-# indices = np.where(mask)[0]
-# values = jupiter_axis[mask]
-# #print("Indices under 200:", indices)
-# #print("Values under 200:", values)
-# depart_indicies = johann_2[0][indices]
+#Arbitary mask of x - determined by energy constraints
+mask = jupiter_axis < 45
+indices = np.where(mask)[0]
+values = jupiter_axis[mask]
+#print("Indices under 200:", indices)
+#print("Values under 200:", values)
+depart_indicies = johann_2[0][indices]
 
 
-# # Going through each line, for example 12
-# first_i = indices[0]
-# first_id = depart_indicies[0]
-# mars_axis = johann_1[2][first_i, :]
-# mask2 = mars_axis < 50
-# indices2 = np.where(mask2)[0]
-# depart_indicies2 = johann_1[1][indices2]
+# Going through each line, for example 12
+first_i = indices[0]
+first_id = depart_indicies[0]
+mars_axis = johann_1[2][first_i, :]
+mask2 = mars_axis < 50
+indices2 = np.where(mask2)[0]
+depart_indicies2 = johann_1[1][indices2]
 
-# print("\n")
-# print("Ideal days to leave are:")
-# print(depart_indicies2)
-# print("These are equivalent to:")
-# start_date = datetime.strptime(dep_dates_0, '%Y-%m-%d')
-# new_date1 = start_date + timedelta(days=300)
-# new_date2 = start_date + timedelta(days=700)
-# print(new_date1.strftime('%Y-%m-%d'))
-# print(new_date2.strftime('%Y-%m-%d'))
+print("\n")
+print("Ideal days to leave are:")
+print(depart_indicies2)
+print("These are equivalent to:")
+start_date = datetime.strptime(dep_dates_0, '%Y-%m-%d')
+new_date1 = start_date + timedelta(days=300)
+new_date2 = start_date + timedelta(days=700)
+print(new_date1.strftime('%Y-%m-%d'))
+print(new_date2.strftime('%Y-%m-%d'))
 
 
 
@@ -353,16 +353,16 @@ for i in range(n_plots):
         ax.xaxis.set_label_position('top')
         ax.grid(True, linestyle='--', color='gray', linewidth=0.5)
         
-        # if i == 0:
-        #     for each in depart_indicies:
-        #         ax.axhline(y = each, color='red', linestyle='--')
+        if i == 0:
+            for each in depart_indicies:
+                ax.axhline(y = each, color='red', linestyle='--')
             
-        #     ax.axhline(y = first_id, color='blue', linestyle='--')
+            ax.axhline(y = first_id, color='blue', linestyle='--')
                 
-        #     for each2 in depart_indicies2:
-        #         ax.axvline(x = each2, color='blue', linestyle='--')
-        # if i == 2:
-        #     ax.axvline(x=saturnminline, color='red', linestyle='--')
+            for each2 in depart_indicies2:
+                ax.axvline(x = each2, color='blue', linestyle='--')
+        if i == 2:
+            ax.axvline(x=saturnminline, color='red', linestyle='--')
             
         
         
@@ -383,11 +383,11 @@ for i in range(n_plots):
         ax.yaxis.set_ticks_position('right')
         ax.yaxis.set_label_position('right')
         
-        # if i == 1:
-        #     ax.axvline(x=saturnminline, color='red', linestyle='--')
+        if i == 1:
+            ax.axvline(x=saturnminline, color='red', linestyle='--')
             
-        # for each in depart_indicies:
-        #     ax.axhline(y = each, color='red', linestyle='--')
+        for each in depart_indicies:
+            ax.axhline(y = each, color='red', linestyle='--')
 
         
 
