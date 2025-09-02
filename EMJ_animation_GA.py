@@ -34,8 +34,8 @@ for i in range(10):
         
 # Holds the spice name of the planets        
 Earth = pd_req0['spice_name']
-Mars = pd_req1['spice_name']
-Jupiter = pd_req2['spice_name']
+Jupiter = pd_req1['spice_name']
+Saturn = pd_req2['spice_name']
 
 pi = np.pi
 OBSERVER = pd.sun['name']
@@ -49,88 +49,128 @@ def radians(deg):
     rads = deg * (pi/180)
     return rads
 
-AU = 1.496e+8
 def seconds(days):
     return days * 24 * 3600
 
 def calc_ephemeris(target, ets, frame, observer):
     return np.array(spice.spkezr(target, ets, frame, 'NONE', observer)[0])
 
-# # Setup orbital data for planets
-# start = '2029-07-26' 
-# departure0 = '2029-10-01' 
-# arrival0 = '2030-08-15'    # Mars arrival
-# arrival1 = '2036-07-07'    # Jupiter arrival
-# start = "2016-05-01"
-# departure0 = "2016-10-01"  # Earth departure
-# arrival0 = "2017-06-15"  # Mars flyby
-# arrival1 = "2022-07-07"  # Jupiter arrival
 
-time0 = "1977-08-15"  # Earth departure
-time1 = "1979-07-22"  # Jupiter flyby
-time2 = "1981-08-07"  # Saturn arrival
+def calc_vinfinity(tof, target_planet, departure_planet, et0, vinf_target):
+    """
+    Function to compute difference between target vinfinity magnitude and
+    current vinfinity magnitude for a given time of flight (tof).
+    """
+    r1_target = calc_ephemeris(target_planet, et0 + tof, FRAME, OBSERVER)[:3]
+    state_departure = calc_ephemeris(departure_planet, et0, FRAME, OBSERVER)
+    
+    v0_sc_depart, v1_sc_arrive = lt.lambert_solver(
+        state_departure[:3],    
+        r1_target,   
+        tof,
+        mu_sun,
+        trajectory='pro'
+    )
+    
+    vinf = np.linalg.norm(v0_sc_depart - state_departure[3:])
+    return vinf_target - vinf
+
+def vinfinity_match(planet0, planet1, v_sc_incoming, et0, tof0, diff_step=1e-3, tol=1e-4):
+    """
+    Match V-infinity magnitudes for hyperbolic flyby
+    """
+    state0_planet0 = calc_ephemeris(planet0, et0, FRAME, OBSERVER)
+    vinf_incoming = v_sc_incoming - state0_planet0[3:]
+    vinf_magnitude = np.linalg.norm(vinf_incoming)
+    
+   
+    def root_func(tof):
+        return calc_vinfinity(tof, planet1, planet0, et0, vinf_magnitude)
+    
+    tof, steps = lt.newton_root_single_fd(root_func, tof0, tol=tol, diff_step=diff_step)
+    
+    r1_planet1 = calc_ephemeris(planet1, et0 + tof, FRAME, OBSERVER)[:3]
+    
+    v_sc_depart, v_sc_arrive = lt.lambert_solver(
+        state0_planet0[:3],    
+        r1_planet1,   
+        tof,
+        mu_sun,
+        trajectory='pro'
+    )
+    
+    return tof, v_sc_depart, v_sc_arrive
 
 
-start = "1977-02-15"
 
-departure0 = time0
-arrival0 = time1
-arrival1 = time2
+# Dates for Planetary flybys
+
+time0 = "1976-08-15"  # Earth departure
+time1 = "1978-07-22"  # Jupiter flyby
+time2 = "1981-10-30"  # Saturn arrival
 
 
-et_departure = spice.utc2et(departure0)
-et_arrival = spice.utc2et(arrival0)
-et_arrival1 = spice.utc2et(arrival1)
+start = "1976-02-15"
 
-tof1 = et_arrival - et_departure      # Earth to Jupiter time
-tof2 = et_arrival1 - et_arrival       # Jupiter to Saturn time
+et_0 = spice.utc2et(time0)
+et_1 = spice.utc2et(time1)
+et_2 = spice.utc2et(time2)
 
-print(f"Earth to Mars: {tof1/86400:.1f} days")
-print(f"Mars to Jupiter: {tof2/86400:.1f} days")
+
+# Earth to Jupiter time
+tof_1 = et_1 - et_0   
+      
+
+print(f"Earth to Jupiter: {tof_1/86400:.1f} days")
+#print(f"Jupiter to Saturn: {tof2/86400:.1f} days")
 
 # Get ephemeris data for all mission points
-ephem_departure = calc_ephemeris(Earth, et_departure, FRAME, OBSERVER)
-ephem_arrival = calc_ephemeris(Mars, et_arrival, FRAME, OBSERVER)
-ephem_arrival1 = calc_ephemeris(Jupiter, et_arrival1, FRAME, OBSERVER)
+state0 = calc_ephemeris(Earth, et_0, FRAME, OBSERVER)
+state1 = calc_ephemeris(Jupiter, et_1, FRAME, OBSERVER)
 
-# Solve Lambert's problem for Earth to Mars
+
+
+
+# Solve Lambert's problem for Earth to Jupiter
 try:
-    v_sc_depart, v_sc_arrive = lt.lambert_solver(
-        ephem_departure[:3],  # Earth position at departure
-        ephem_arrival[:3],    # Mars position at arrival
-        tof1,                 # Time of flight in seconds
-        mu_sun,               # Sun's gravitational parameter
-        trajectory='pro'      # Prograde trajectory
+    v_sc_depart_1, v_sc_arrive_1 = lt.lambert_solver(
+        state0[:3],    
+        state1[:3],   
+        tof_1,
+        mu_sun,
+        trajectory='pro'
     )
-    print("Earth-Mars Lambert solver successful")
-    print(f"Earth departure velocity: {v_sc_depart}")
+
 except Exception as e:
     print(f"Earth-Mars Lambert solver failed: {e}")
-    v_sc_depart = np.array([1000, 1000, 1000])
-    v_sc_arrive = np.array([1000, 1000, 1000])
-
-# # Solve Lambert's problem for Mars to Jupiter
-# try:
-#     v_sc_depart2, v_sc_arrive2 = lt.lambert_solver(
-#         ephem_arrival[:3],    # Mars position at departure
-#         ephem_arrival1[:3],   # Jupiter position at arrival
-#         tof2,                 # Time of flight in seconds
-#         mu_sun,               # Sun's gravitational parameter
-#         trajectory='pro'      # Prograde trajectory
-#     )
-#     print("Mars-Jupiter Lambert solver successful")
-#     print(f"Mars departure velocity: {v_sc_depart2}")
-# except Exception as e:
-#     print(f"Mars-Jupiter Lambert solver failed: {e}")
-#     v_sc_depart2 = np.array([1000, 1000, 1000])
-#     v_sc_arrive2 = np.array([1000, 1000, 1000])
+    v_sc_depart_1 = np.array([1000, 1000, 1000])
+    v_sc_depart_1 = np.array([1000, 1000, 1000])
 
 
 
-# v_sc_depart2 = [30.59267215, -3.50283931, -0.94193825]
-v_sc_depart2 = [-16.56539206, -10.60291743,   0.87949009]
-X0 = [*ephem_departure[:3], *v_sc_depart]      # Earth to Mars
-X1 = [*ephem_arrival[:3], *v_sc_depart2]       # Mars to Jupiter
+v_inf_dep_E = v_sc_depart_1 - state0[3:]
+v_inf_arr_J = v_sc_arrive_1 - state1[3:]
+
+tof_guess_2 = et_2 - et_1
+
+"""
+This function takes the input as the heliocentric arrival velocity to Jupiter (from Earth)
+and using the tof_guess trys to find the heliocentric leaving velocity such that it will both get to 
+Saturn and that the v_inf both plus and minus are both equal in magnitude. Once this is solved, it returns 
+the new time of flight as well as the departing heliocentric velocity
+"""
+tof_2, v_sc_depart_2, v_sc_arrive_2 = vinfinity_match(
+    Jupiter, Saturn,
+    v_sc_arrive_1,  # spacecraft velocity at Jupiter arrival
+    et_1, tof_guess_2
+)
+
+
+
+
+
+X0 = [*state0[:3], *v_sc_depart_1]      # Earth to Jupiter
+X1 = [*state1[:3], *v_sc_depart_2]       # Jupiter to Saturn
 
 def two_body(t, y):
     """Two-body dynamics for spacecraft motion"""
@@ -141,63 +181,55 @@ def two_body(t, y):
     return np.concatenate((v, a))
 
 
-print("Integrating trajectories...")
-t_span1 = (0, tof1)
-t_eval1 = np.linspace(0, tof1, 1000)
+
+t_span1 = (0, tof_1)
+t_eval1 = np.linspace(0, tof_1, 1000)
 solution1 = solve_ivp(two_body, t_span1, X0, t_eval=t_eval1, method='RK45', rtol=1e-12, atol=1e-12)
 
-t_span2 = (0, tof2)
-t_eval2 = np.linspace(0, tof2, 1000)
+t_span2 = (0, tof_2)
+t_eval2 = np.linspace(0, tof_2, 1000)
 solution2 = solve_ivp(two_body, t_span2, X1, t_eval=t_eval2, method='RK45', rtol=1e-12, atol=1e-12)
 
 # Extract trajectory data
 if solution1.success:
     x_traj1, y_traj1, z_traj1 = solution1.y[0], solution1.y[1], solution1.y[2]
-    print("First trajectory integration successful")
-    print(f"Start pos: {[x_traj1[0], y_traj1[0], z_traj1[0]]}")
-    print(f"End pos: {[x_traj1[-1], y_traj1[-1], z_traj1[-1]]}")
-    print(f"Expected end pos: {ephem_arrival[:3]}")
 else:
     x_traj1 = y_traj1 = z_traj1 = np.array([0])
     print("First trajectory integration failed")
 
 if solution2.success:
     x_traj2, y_traj2, z_traj2 = solution2.y[0], solution2.y[1], solution2.y[2]
-    print("Second trajectory integration successful")
-    print(f"Start pos: {[x_traj2[0], y_traj2[0], z_traj2[0]]}")
-    print(f"End pos: {[x_traj2[-1], y_traj2[-1], z_traj2[-1]]}")
-    print(f"Expected end pos: {ephem_arrival1[:3]}")
 else:
     x_traj2 = y_traj2 = z_traj2 = np.array([0])
     print("Second trajectory integration failed")
 
-# FIXED: Simplified animation timeline
+
 et_start = int(spice.utc2et(start))
 time_step = 86400  # 1 day
 
 # Generate planet positions for animation period
-animation_days = 3000  # About 8 years
+animation_days = 3000
 animation_times = np.arange(et_start, et_start + animation_days * time_step, time_step)
 
-print("Generating planet positions...")
+
 earth_pos = []
 mars_pos = []
 jupiter_pos = []
 
 for t in animation_times:
     earth_pos.append(calc_ephemeris(Earth, t, FRAME, OBSERVER)[:3])
-    mars_pos.append(calc_ephemeris(Mars, t, FRAME, OBSERVER)[:3])
-    jupiter_pos.append(calc_ephemeris(Jupiter, t, FRAME, OBSERVER)[:3])
+    mars_pos.append(calc_ephemeris(Jupiter, t, FRAME, OBSERVER)[:3])
+    jupiter_pos.append(calc_ephemeris(Saturn, t, FRAME, OBSERVER)[:3])
 
 earth_pos = np.array(earth_pos)
 mars_pos = np.array(mars_pos)
 jupiter_pos = np.array(jupiter_pos)
 
 # FIXED: Calculate transfer timing in animation frames
-transfer1_start_frame = int((et_departure - et_start) / time_step)
-transfer1_duration_frames = int(tof1 / time_step)
-transfer2_start_frame = int((et_arrival - et_start) / time_step)
-transfer2_duration_frames = int(tof2 / time_step)
+transfer1_start_frame = int((et_0 - et_start) / time_step)
+transfer1_duration_frames = int(tof_1 / time_step)
+transfer2_start_frame = int((et_1 - et_start) / time_step)
+transfer2_duration_frames = int(tof_2 / time_step)
 
 print(f"Transfer 1: frames {transfer1_start_frame} to {transfer1_start_frame + transfer1_duration_frames}")
 print(f"Transfer 2: frames {transfer2_start_frame} to {transfer2_start_frame + transfer2_duration_frames}")
@@ -221,8 +253,8 @@ ax.set_title('Earth-Mars-Jupiter Transfer Trajectory')
 
 # Create plot objects
 earth_dot, = ax.plot([], [], [], 'bo', markersize=8, label='Earth')
-mars_dot, = ax.plot([], [], [], 'ro', markersize=8, label='Mars')
-jupiter_dot, = ax.plot([], [], [], 'orange', marker='o', markersize=10, label='Jupiter')
+mars_dot, = ax.plot([], [], [], 'ro', markersize=8, label='Jupiter')
+jupiter_dot, = ax.plot([], [], [], 'orange', marker='o', markersize=10, label='Saturn')
 spacecraft_dot, = ax.plot([], [], [], 'go', markersize=6, label='Spacecraft')
 sun_dot, = ax.plot([0], [0], [0], 'yo', markersize=12, label='Sun')
 
@@ -230,8 +262,8 @@ sun_dot, = ax.plot([0], [0], [0], 'yo', markersize=12, label='Sun')
 earth_trail, = ax.plot([], [], [], 'b-', alpha=0.3, linewidth=1)
 mars_trail, = ax.plot([], [], [], 'r-', alpha=0.3, linewidth=1)
 jupiter_trail, = ax.plot([], [], [], 'orange', alpha=0.3, linewidth=1)
-transfer_trail1, = ax.plot([], [], [], 'g-', alpha=0.8, linewidth=2, label='Earth-Mars')
-transfer_trail2, = ax.plot([], [], [], 'm-', alpha=0.8, linewidth=2, label='Mars-Jupiter')
+transfer_trail1, = ax.plot([], [], [], 'g-', alpha=0.8, linewidth=2, label='Earth-Jupiter')
+transfer_trail2, = ax.plot([], [], [], 'm-', alpha=0.8, linewidth=2, label='Jupiter-Saturn')
 
 # Trail data
 trail_length = 50
@@ -277,10 +309,10 @@ def animate(frame):
     mars_trail.set_data_3d(mars_trail_data[0], mars_trail_data[1], mars_trail_data[2])
     jupiter_trail.set_data_3d(jupiter_trail_data[0], jupiter_trail_data[1], jupiter_trail_data[2])
     
-    # Handle spacecraft trajectory during transfer windows
+    
     spacecraft_visible = False
     
-    # FIXED: First transfer timing
+    # First transfer timing
     if transfer1_start_frame <= frame < transfer1_start_frame + transfer1_duration_frames:
         transfer_progress = (frame - transfer1_start_frame) / transfer1_duration_frames
         traj_idx = int(transfer_progress * (len(x_traj1) - 1))
@@ -295,7 +327,7 @@ def animate(frame):
             transfer_trail1_data[i].append(pos)
         transfer_trail1.set_data_3d(transfer_trail1_data[0], transfer_trail1_data[1], transfer_trail1_data[2])
     
-    # FIXED: Second transfer timing
+    # Second transfer timing
     elif transfer2_start_frame <= frame < transfer2_start_frame + transfer2_duration_frames:
         transfer_progress = (frame - transfer2_start_frame) / transfer2_duration_frames
         traj_idx = int(transfer_progress * (len(x_traj2) - 1))
@@ -319,8 +351,10 @@ def animate(frame):
             transfer_trail1, transfer_trail2)
 
 # Create animation
-total_frames = 4000  # Limit to reasonable number
-N = 5  # Update every N frames
+total_frames = 4000  
+
+# Update every N frames to speed up animation
+N = 5  
 anim = animation.FuncAnimation(fig, animate, frames=range(0, total_frames, N), 
                               interval=10, blit=False, repeat=False)
 

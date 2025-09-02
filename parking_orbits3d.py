@@ -86,7 +86,7 @@ Using Lambert's Solver to return the required velocities
 
 r_p = 6378.137  # km
 h_alt = 1000
-i_deg = 45
+i_deg = 80
 
 def circ_velocity_at_point_with_incl(r_point_helio, earth_state_helio, i_deg, mu_central):
     rE = earth_state_helio[:3]
@@ -167,7 +167,7 @@ def sphere_points(center, r, num):
     return x, y, z, theta, phi
 
 radius = r_p + h_alt
-x, y, z, theta, phi = sphere_points(earth_centre[:3], radius, num=30)
+x, y, z, theta, phi = sphere_points(earth_centre[:3], radius, num=5)
 
 
 # Flatten and combine into (N,3) array of points
@@ -250,13 +250,13 @@ p = ax.scatter(points_valid[:,0], points_valid[:,1], points_valid[:,2],
 Arrows to reassure the velocity vector is correct
 '''
 
-# ax.quiver(
-#     points_valid[:,0], points_valid[:,1], points_valid[:,2],  # base points
-#     v_geo_valid[:,0], v_geo_valid[:,1], v_geo_valid[:,2],     # vector components
-#     length=5000,    # adjust scale for visibility
-#     color='black',  # or any color
-#     normalize=True # normalize vectors to the same length
-# )
+ax.quiver(
+    points_valid[:,0], points_valid[:,1], points_valid[:,2],  # base points
+    v_geo_valid[:,0], v_geo_valid[:,1], v_geo_valid[:,2],     # vector components
+    length=5000,    # adjust scale for visibility
+    color='black',  # or any color
+    normalize=True # normalize vectors to the same length
+)
 
 # Create sphere mesh
 phi, theta = np.linspace(0, 2*np.pi, 30), np.linspace(0, np.pi, 15)

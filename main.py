@@ -140,12 +140,9 @@ ephem_departures = [calc_ephemeris(departure_planet, et, FRAME, OBSERVER) for et
 ephem_arrivals = [calc_ephemeris(arrival_planet, et, FRAME, OBSERVER) for et in et_arrivals]
           
 
-    
+
 
 def compute_lambert_entry(states_depart, states_arrive, tof, sun_mu, cutoff_c3):
-    from numpy.linalg import norm
-    
-    
     if tof <= 0 or norm(states_depart[:3] - states_arrive[:3]) < 1e6:
         return cutoff_c3, cutoff_c3, tof
 
@@ -165,25 +162,24 @@ def compute_lambert_entry(states_depart, states_arrive, tof, sun_mu, cutoff_c3):
     return C3_short, C3_long, tof
 
 
-results = Parallel(n_jobs=-1)(
-    delayed(compute_lambert_entry)(
-        ephem_departures[nd],
-        ephem_arrivals[na],
-        et_arrivals[na] - et_departures[nd],
-        sun_mu,
-        cutoff_c3
+if __name__ == "__main__":
+    results = Parallel(n_jobs=-1)(
+        delayed(compute_lambert_entry)(
+            ephem_departures[nd],
+            ephem_arrivals[na],
+            et_arrivals[na] - et_departures[nd],
+            sun_mu,
+            cutoff_c3
+        )
+        for na in tqdm(range(as_), desc="Calculating Transfer")
+        for nd in range(ds)
     )
-    for na in tqdm(range(as_), desc="Calculating Transfer")
-    for nd in range(ds)
-)
 
-for idx, (C3_short, C3_long, tof) in enumerate(results):
-    na = idx // ds
-    nd = idx % ds
-    C3_shorts[na, nd] = C3_short
-    C3_longs[na, nd] = C3_long
-    #tofs[na, nd] = tof
-    
+    for idx, (C3_short, C3_long, tof) in enumerate(results):
+        na = idx // ds
+        nd = idx % ds
+        C3_shorts[na, nd] = C3_short
+        C3_longs[na, nd] = C3_long
 
 # Prints the combination numver its calculating
 print( '\nDeparture days: %i.'     % ds    )
