@@ -105,12 +105,12 @@ def vinfinity_match(planet0, planet1, v_sc_incoming, et0, tof0, diff_step=1e-3, 
 
 # Dates for Planetary flybys
 
-time0 = "1976-08-15"  # Earth departure
-time1 = "1978-07-22"  # Jupiter flyby
-time2 = "1981-10-30"  # Saturn arrival
+time0 = "1977-08-15"  # Earth departure
+time1 = "1979-07-22"  # Jupiter flyby
+time2 = "1981-08-07"  # Saturn arrival
 
 
-start = "1976-02-15"
+start = "1977-02-15"
 
 et_0 = spice.utc2et(time0)
 et_1 = spice.utc2et(time1)
@@ -127,9 +127,6 @@ print(f"Earth to Jupiter: {tof_1/86400:.1f} days")
 # Get ephemeris data for all mission points
 state0 = calc_ephemeris(Earth, et_0, FRAME, OBSERVER)
 state1 = calc_ephemeris(Jupiter, et_1, FRAME, OBSERVER)
-
-
-
 
 # Solve Lambert's problem for Earth to Jupiter
 try:
@@ -167,7 +164,24 @@ tof_2, v_sc_depart_2, v_sc_arrive_2 = vinfinity_match(
 
 
 
+print(v_sc_depart_2)
 
+vinf_in = v_sc_arrive_1 - state1[3:]
+vinf_out = v_sc_depart_2 - state1[3:]
+def_angle = np.arccos(np.dot(vinf_in, vinf_out) / (norm(vinf_in) * norm(vinf_out)))
+r_jup = 69911
+mu_jup = 126.687*10**6
+
+
+def altitude(delta_a, v_infx):
+    e = 1 / np.sin(delta_a / 2)
+    r_p = (e - 1) * mu_jup / v_infx**2
+    h = r_p - r_jup
+    return h
+
+v_inf_mag = norm(vinf_in)
+h = altitude(def_angle, v_inf_mag)
+print(h)
 
 X0 = [*state0[:3], *v_sc_depart_1]      # Earth to Jupiter
 X1 = [*state1[:3], *v_sc_depart_2]       # Jupiter to Saturn
@@ -207,23 +221,32 @@ else:
 et_start = int(spice.utc2et(start))
 time_step = 86400  # 1 day
 
-# Generate planet positions for animation period
-animation_days = 3000
-animation_times = np.arange(et_start, et_start + animation_days * time_step, time_step)
+
+def time_orbit(a, μ):
+    T = 2 * np.pi * np.sqrt(a**3 / μ)
+    time = T 
+    return time
 
 
-earth_pos = []
-mars_pos = []
-jupiter_pos = []
+# Semi-major axes (km)
+a_earth   = 149597870.7
+a_jupiter = 778547200.0
+a_saturn  = 1433449370.0
 
-for t in animation_times:
-    earth_pos.append(calc_ephemeris(Earth, t, FRAME, OBSERVER)[:3])
-    mars_pos.append(calc_ephemeris(Jupiter, t, FRAME, OBSERVER)[:3])
-    jupiter_pos.append(calc_ephemeris(Saturn, t, FRAME, OBSERVER)[:3])
+T_earth   = time_orbit(a_earth, mu_sun) / 86400  # in days
+T_jupiter = time_orbit(a_jupiter, mu_sun) / 86400
+T_saturn  = time_orbit(a_saturn, mu_sun) / 86400
 
-earth_pos = np.array(earth_pos)
-mars_pos = np.array(mars_pos)
-jupiter_pos = np.array(jupiter_pos)
+time_step = 1 * 86400  # 1 day in seconds
+
+def planet_positions(spk_id, et_start, T_days, step_days=1):
+    times = np.arange(et_start, et_start + T_days * 86400, step_days * 86400)
+    return [calc_ephemeris(spk_id, t, FRAME, OBSERVER)[:3] for t in times]
+
+planet_0   = planet_positions(Earth,   et_start, T_earth)
+planet_1 = planet_positions(Jupiter, et_start, T_jupiter)
+planet_2  = planet_positions(Saturn,  et_start, T_saturn)
+
 
 # FIXED: Calculate transfer timing in animation frames
 transfer1_start_frame = int((et_0 - et_start) / time_step)
@@ -240,7 +263,7 @@ ax = fig.add_subplot(111, projection='3d')
 
 # Set axis limits
 margin = 1.2
-max_range = max(np.max(np.abs(jupiter_pos)), np.max(np.abs(mars_pos)), np.max(np.abs(earth_pos)))
+max_range = max(np.max(np.abs(planet_2)), np.max(np.abs(planet_1)), np.max(np.abs(planet_0)))
 ax.set_xlim(-max_range * margin, max_range * margin)
 ax.set_ylim(-max_range * margin, max_range * margin)
 ax.set_zlim(-max_range * margin, max_range * margin)
@@ -252,24 +275,24 @@ ax.set_zlabel('Z (km)')
 ax.set_title('Earth-Mars-Jupiter Transfer Trajectory')
 
 # Create plot objects
-earth_dot, = ax.plot([], [], [], 'bo', markersize=8, label='Earth')
-mars_dot, = ax.plot([], [], [], 'ro', markersize=8, label='Jupiter')
-jupiter_dot, = ax.plot([], [], [], 'orange', marker='o', markersize=10, label='Saturn')
+zero_dot, = ax.plot([], [], [], 'bo', markersize=8, label='Earth')
+one_dot, = ax.plot([], [], [], 'ro', markersize=8, label='Jupiter')
+two_dot, = ax.plot([], [], [], 'orange', marker='o', markersize=10, label='Saturn')
 spacecraft_dot, = ax.plot([], [], [], 'go', markersize=6, label='Spacecraft')
 sun_dot, = ax.plot([0], [0], [0], 'yo', markersize=12, label='Sun')
 
 # Trail objects
-earth_trail, = ax.plot([], [], [], 'b-', alpha=0.3, linewidth=1)
-mars_trail, = ax.plot([], [], [], 'r-', alpha=0.3, linewidth=1)
-jupiter_trail, = ax.plot([], [], [], 'orange', alpha=0.3, linewidth=1)
+zero_trail, = ax.plot([], [], [], 'b-', alpha=0.3, linewidth=1)
+one_trail, = ax.plot([], [], [], 'r-', alpha=0.3, linewidth=1)
+two_trail, = ax.plot([], [], [], 'orange', alpha=0.3, linewidth=1)
 transfer_trail1, = ax.plot([], [], [], 'g-', alpha=0.8, linewidth=2, label='Earth-Jupiter')
 transfer_trail2, = ax.plot([], [], [], 'm-', alpha=0.8, linewidth=2, label='Jupiter-Saturn')
 
 # Trail data
 trail_length = 50
-earth_trail_data = [[], [], []]
-mars_trail_data = [[], [], []]
-jupiter_trail_data = [[], [], []]
+zero_trail_data = [[], [], []]
+one_trail_data = [[], [], []]
+two_trail_data = [[], [], []]
 transfer_trail1_data = [[], [], []]
 transfer_trail2_data = [[], [], []]
 
@@ -278,36 +301,40 @@ def animate(frame):
     # Ensure frame is within bounds
     #frame = frame % len(earth_pos)
     
+    frame_earth   = frame % len(planet_0)
+    frame_mars    = frame % len(planet_1)
+    frame_jupiter = frame % len(planet_2)
+    
     # Current planet positions
-    earth_current = earth_pos[frame]
-    mars_current = mars_pos[frame]
-    jupiter_current = jupiter_pos[frame]
+    zero_current = planet_0[frame_earth]
+    one_current = planet_1[frame_mars]
+    two_current = planet_2[frame_jupiter]
     
     # Update planet positions
-    earth_dot.set_data_3d([earth_current[0]], [earth_current[1]], [earth_current[2]])
-    mars_dot.set_data_3d([mars_current[0]], [mars_current[1]], [mars_current[2]])
-    jupiter_dot.set_data_3d([jupiter_current[0]], [jupiter_current[1]], [jupiter_current[2]])
+    zero_dot.set_data_3d([zero_current[0]], [zero_current[1]], [zero_current[2]])
+    one_dot.set_data_3d([one_current[0]], [one_current[1]], [one_current[2]])
+    two_dot.set_data_3d([two_current[0]], [two_current[1]], [two_current[2]])
     
     # Update trails every few frames
     if frame % 3 == 0:
-        for i, pos in enumerate(earth_current):
-            earth_trail_data[i].append(pos)
-            if len(earth_trail_data[i]) > trail_length:
-                earth_trail_data[i].pop(0)
+        for i, pos in enumerate(zero_current):
+            zero_trail_data[i].append(pos)
+            if len(zero_trail_data[i]) > trail_length:
+                zero_trail_data[i].pop(0)
         
-        for i, pos in enumerate(mars_current):
-            mars_trail_data[i].append(pos)
-            if len(mars_trail_data[i]) > trail_length:
-                mars_trail_data[i].pop(0)
+        for i, pos in enumerate(one_current):
+            one_trail_data[i].append(pos)
+            if len(one_trail_data[i]) > trail_length:
+                one_trail_data[i].pop(0)
         
-        for i, pos in enumerate(jupiter_current):
-            jupiter_trail_data[i].append(pos)
-            if len(jupiter_trail_data[i]) > trail_length:
-                jupiter_trail_data[i].pop(0)
+        for i, pos in enumerate(two_current):
+            two_trail_data[i].append(pos)
+            if len(two_trail_data[i]) > trail_length:
+                two_trail_data[i].pop(0)
     
-    earth_trail.set_data_3d(earth_trail_data[0], earth_trail_data[1], earth_trail_data[2])
-    mars_trail.set_data_3d(mars_trail_data[0], mars_trail_data[1], mars_trail_data[2])
-    jupiter_trail.set_data_3d(jupiter_trail_data[0], jupiter_trail_data[1], jupiter_trail_data[2])
+    zero_trail.set_data_3d(zero_trail_data[0], zero_trail_data[1], zero_trail_data[2])
+    one_trail.set_data_3d(one_trail_data[0], one_trail_data[1], one_trail_data[2])
+    two_trail.set_data_3d(two_trail_data[0], two_trail_data[1], two_trail_data[2])
     
     
     spacecraft_visible = False
@@ -346,15 +373,16 @@ def animate(frame):
     if not spacecraft_visible:
         spacecraft_dot.set_data_3d([], [], [])
     
-    return (earth_dot, mars_dot, jupiter_dot, spacecraft_dot, 
-            earth_trail, mars_trail, jupiter_trail, 
+    return (zero_dot, one_dot, two_dot, spacecraft_dot, 
+            zero_trail, one_trail, two_trail, 
             transfer_trail1, transfer_trail2)
 
 # Create animation
-total_frames = 4000  
+
+total_frames = transfer2_start_frame + transfer2_duration_frames + 200  
 
 # Update every N frames to speed up animation
-N = 5  
+N = 5
 anim = animation.FuncAnimation(fig, animate, frames=range(0, total_frames, N), 
                               interval=10, blit=False, repeat=False)
 

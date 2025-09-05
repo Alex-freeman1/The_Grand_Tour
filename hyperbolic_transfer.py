@@ -72,7 +72,7 @@ vinf_out= [-7.75599905, -1.40346388,  0.64428571]
 v_sc_arrive_1 = [-9.14381453, -1.47503865, -1.426696]
 v_sc_depart_2 = [-16.56539206, -10.60291743,  0.87949009]
 
-v_inf_in = np.array([-0.33442151,  7.7244149 , -1.66190037])  # replace with your vector in km/s
+v_inf_in = np.array([-0.33442151,  7.7244149 , -1.66190037]) 
 h = 1901522  # altitude in km above Jupiter
 mu_J = 1.2668653e8  # km^3/s^2
 R_J = 71492.0  # km
@@ -142,7 +142,7 @@ zj = R_J * np.cos(v)
 ax.plot_surface(xj, yj, zj, color='orange', alpha=0.5)
 
 # Set equal aspect ratio (spherical appearance)
-max_range = R_J * 20  # enough to include the hyperbolic arc
+max_range = R_J * 30  # enough to include the hyperbolic arc
 ax.set_xlim(-max_range, max_range)
 ax.set_ylim(-max_range, max_range)
 ax.set_zlim(-max_range, max_range)

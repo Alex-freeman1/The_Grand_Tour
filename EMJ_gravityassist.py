@@ -92,15 +92,17 @@ Saturn = pd_jupiter['spice_name']
 
 
 #EMJ trajectory times 
+# time0 = "1977-08-15"  # Earth departure
+# time1 = "1979-07-22"  # Jupiter flyby
+
 time0 = "1977-08-15"  # Earth departure
-time1 = "1979-02-22"  # Jupiter flyby
+time1 = "1979-07-22"  # Jupiter flyby
 time2 = "1981-08-07"  # Saturn arrival
+
 
 et_0 = spice.utc2et(time0)
 et_1 = spice.utc2et(time1)
 et_2 = spice.utc2et(time2)
-
-
 
 # LEG 1: Earth to Jupiter
 
@@ -138,19 +140,19 @@ vinf_in = v_sc_arrive_1 - state_Jupiter_flyby[3:]
 vinf_out = v_sc_depart_2 - state_Jupiter_flyby[3:]
 
 # Calculate deflection angle
-deflection_angle = np.arccos(np.dot(vinf_in, vinf_out) / (norm(vinf_in) * norm(vinf_out)))
+def_angle = np.arccos(np.dot(vinf_in, vinf_out) / (norm(vinf_in) * norm(vinf_out)))
 
 
 print("Gravity assist at Jupiter")
 print("------------------------")
 
-# print(f"Jupiter V_inf_minis: {vinf_in} km/s")
-# print(f"Jupiter V_inf_plus: {vinf_out} km/s")
-# print(f"Deflection angle: {np.degrees(deflection_angle):.1f} degrees")
-# print(f"Heliocentric arriving veloicty: {v_sc_arrive_1} km/s)"
+print(f"Jupiter V_inf_minis: {vinf_in} km/s")
+print(f"Jupiter V_inf_plus: {vinf_out} km/s")
+print(f"Deflection angle: {np.degrees(def_angle):.1f} degrees")
+print(f"Heliocentric arriving veloicty: {v_sc_arrive_1} km/s)")
 print(f"Heliocentric leaving velocity: {v_sc_depart_2} km/s")
-
-
+print(f"Leg 1 tof: {days(tof_1):.2f}")
+print(f"Leg 2 tof: {days(tof_2):.2f}")
 
 r_jup = 69911
 mu_jup = 126.687*10**6
@@ -161,12 +163,9 @@ def altitude(delta_a, v_infx):
     h = r_p - r_jup
     return h
 
-v_inf = norm(vinf_in)
-h = altitude(deflection_angle, v_inf)
+v_inf_mag = norm(vinf_in)
+h = altitude(def_angle, v_inf_mag)
 print(f"Flyby altitude of Jupiter: {h:.2f} km")
-
-
-
 
 
 # Saturn arrival analysis
