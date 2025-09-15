@@ -322,7 +322,14 @@ for i in range(n_plots):
             ax.axhline(y = points_days_1[0], color='red', linestyle='--')
             
         if i == 2:
-            ax.axvline(x = points_days_2[0], color='red', linestyle='--')
+            
+            ax.axvline(x = points_days_2[i], color='red', linestyle='--')
+            
+            # for i in range(points_days_2.shape[0]):
+            #     if points_days_2[i] < 0:
+            #         pass
+            #     else:
+            #         ax.axvline(x = points_days_2[i], color='red', linestyle='--')
         
        
         
