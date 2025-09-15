@@ -105,16 +105,33 @@ def vinfinity_match(planet0, planet1, v_sc_incoming, et0, tof0, diff_step=1e-3, 
 
 # Dates for Planetary flybys
 
-time0 = "1977-08-15"  # Earth departure
-time1 = "1979-07-22"  # Jupiter flyby
-time2 = "1981-08-07"  # Saturn arrival
+# time0 = "1977-02-01"  # Earth departure
+# time1 = "1979-03-07"  # Jupiter flyby
+# time2 = "1980-09-03"  # Saturn arrival
+
+# Departure: 1979 MAR 07 23:59:59
+# Arrival (with new TOF): 1980 SEP 17 23:34:25
+# With a depature from Earth at where i was 0
+
+# et_0 = spice.utc2et(time0)
+# et_1 = spice.utc2et(time1)
+# et_2 = spice.utc2et(time2)
+string_var = "-705844751.8	-657028750.8	-602686124.7"
+
+arr = np.array(string_var.split(), dtype=float)
+et_0 = arr[0]
+et_1 = arr[1]
+et_2 = arr[2]
+
+# et_0 = -705844751.8151966
+# et_1 = -674308750.8152032
+# et_2 = -637840753.413295
 
 
-start = "1977-02-15"
 
-et_0 = spice.utc2et(time0)
-et_1 = spice.utc2et(time1)
-et_2 = spice.utc2et(time2)
+
+
+
 
 
 # Earth to Jupiter time
@@ -181,7 +198,10 @@ def altitude(delta_a, v_infx):
 
 v_inf_mag = norm(vinf_in)
 h = altitude(def_angle, v_inf_mag)
+
 print(h)
+if h < 0:
+    raise ValueError('h should not be negative')
 
 X0 = [*state0[:3], *v_sc_depart_1]      # Earth to Jupiter
 X1 = [*state1[:3], *v_sc_depart_2]       # Jupiter to Saturn
@@ -218,9 +238,10 @@ else:
     print("Second trajectory integration failed")
 
 
-et_start = int(spice.utc2et(start))
-time_step = 86400  # 1 day
+#et_start = int(spice.utc2et(start))
 
+time_step = 86400  # 1 day
+et_start = et_0 - 40 * time_step
 
 def time_orbit(a, μ):
     T = 2 * np.pi * np.sqrt(a**3 / μ)

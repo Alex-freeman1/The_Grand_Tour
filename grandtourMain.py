@@ -353,17 +353,20 @@ for i in range(n_plots):
         ax.xaxis.set_label_position('top')
         ax.grid(True, linestyle='--', color='gray', linewidth=0.5)
         
-        if i == 0:
-            for each in depart_indicies:
-                ax.axhline(y = each, color='red', linestyle='--')
+        
+        '''
+        Code to produce the minium energy lines
+        # if i == 0:
+        #     for each in depart_indicies:
+        #         ax.axhline(y = each, color='red', linestyle='--')
             
-            ax.axhline(y = first_id, color='blue', linestyle='--')
+        #     ax.axhline(y = first_id, color='blue', linestyle='--')
                 
-            for each2 in depart_indicies2:
-                ax.axvline(x = each2, color='blue', linestyle='--')
-        if i == 2:
-            ax.axvline(x=saturnminline, color='red', linestyle='--')
-            
+        #     for each2 in depart_indicies2:
+        #         ax.axvline(x = each2, color='blue', linestyle='--')
+        # if i == 2:
+        #     ax.axvline(x=saturnminline, color='red', linestyle='--')
+        ''' 
         
         
         
@@ -383,13 +386,15 @@ for i in range(n_plots):
         ax.yaxis.set_ticks_position('right')
         ax.yaxis.set_label_position('right')
         
+        '''
+        Code to produce the minimum energy lines
         if i == 1:
             ax.axvline(x=saturnminline, color='red', linestyle='--')
             
         for each in depart_indicies:
             ax.axhline(y = each, color='red', linestyle='--')
 
-        
+        '''
 
     ax.set_title(f"Segment {segment_names[i]}", fontsize=8)
     ax.grid(True, linestyle='--', color='gray', linewidth=0.5)

@@ -6,7 +6,7 @@ Created on Fri Sep  5 13:21:32 2025
 """
 
 import sys, os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 #Import Python files
 import matplotlib.pyplot as plt
 import spiceypy as spice
@@ -22,27 +22,41 @@ import EMJ_gravityassist as ga
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
-# -------------------------------------------------
-# Constants and SPICE setup
-# -------------------------------------------------
-OBSERVER = 'SUN'
-FRAME = 'ECLIPJ2000'
-mu_sun = 1.32712440018e11  # km^3/s^2, example value; adjust if you have pd.sun['mu']
 
-# -------------------------------------------------
-# Function to calculate ephemeris
-# -------------------------------------------------
+# Establish Kernels
+spice.furnsh("de432s\de432s.bsp")
+spice.furnsh("data\latest_leapseconds (1).tls")
+
+
+
+
+OBSERVER = pd.sun['name']
+FRAME = 'ECLIPJ2000'
+mu_sun = pd.sun['mu']
+
+def norm(vec):
+    return np.linalg.norm(vec)
+
 def calc_ephemeris(target, ets, frame, observer):
 	return np.array(spice.spkezr( target, ets, frame, 'NONE', observer )[ 0 ])
 
-# -------------------------------------------------
-# Johann function
-# -------------------------------------------------
+
+def perihelion_distance(r1, v1, mu):
+    
+    h_vec = np.cross(r1, v1)
+    h = norm(h_vec)
+    energy = norm(v1)**2 / 2 - mu / norm(r1)
+    a = -mu / (2 * energy)
+    e = np.sqrt(1 - h**2 / (a * mu))
+    rp = a * (1 - e)
+    return rp
+
+
+
 def johann(dep_planet, arr_planet, departure0, departure1, arrival0, arrival1, cutoff_c3=200):
-    """Compute C3 shorts and spacecraft departure velocities for a porkchop grid"""
     
     # Step size
-    step_size = 50 if dep_planet in ["EARTH", "MARS BARYCENTER"] else 60
+    step_size = 50
     step = step_size * 24*3600  # seconds
 
     # Time arrays
@@ -66,7 +80,12 @@ def johann(dep_planet, arr_planet, departure0, departure1, arrival0, arrival1, c
         if tof <= 0 or norm(states_depart[:3] - states_arrive[:3]) < 1e6:
             return cutoff_c3, np.zeros(3), np.zeros(3)
         try:
-            v_sc_depart, v_sc_arrive = lt.lambert_solver(states_depart[:3], states_arrive[:3], tof, sun_mu, trajectory='pro')
+            v_sc_depart, v_sc_arrive = lt.lambert_solver(states_depart[:3], states_arrive[:3], tof, sun_mu, trajectory='pro')        
+            
+            rp = perihelion_distance(states_depart[:3], v_sc_depart, sun_mu)
+            if rp < 0.8 * 1.496e8:  
+                return cutoff_c3, np.zeros(3), np.zeros(3)
+        
         except:
             v_sc_depart, v_sc_arrive = states_depart[3:] + 1000, states_depart[3:] + 1000
         C3_short = min(norm(v_sc_depart - states_depart[3:])**2, cutoff_c3)
@@ -102,6 +121,8 @@ def johann(dep_planet, arr_planet, departure0, departure1, arrival0, arrival1, c
 # -------------------------------------------------
 # V-infinity matching for gravity assists
 # -------------------------------------------------
+
+
 def calc_vinfinity(tof, target_planet, departure_planet, et0, vinf_target):
     r1_target = calc_ephemeris(target_planet, et0 + tof, FRAME, OBSERVER)[:3]
     state_departure = calc_ephemeris(departure_planet, et0, FRAME, OBSERVER)
@@ -124,9 +145,14 @@ def vinfinity_match(planet0, planet1, v_sc_incoming, et0, tof0, diff_step=1e-3, 
 
     return tof, v_sc_depart, v_sc_arrive
 
+
+
+
+
+
 # -------------------------------------------------
 # Earth -> Jupiter -> Saturn
-# -------------------------------------------------
+
 
 pd_bodies = pd.bodies
 def loop_bodies(planeti, planetf):
@@ -145,22 +171,20 @@ planet0 = 'Earth'
 planet1 = 'Jupiter'
 departure_planet, arrival_planet = loop_bodies(planet0, planet1)
 
-
-time0 = "1977-08-15"  # Earth departure
-time1 = "1979-07-22"  # Jupiter flyby
-time2 = "1981-08-07"  # Saturn arrival
-
-
 # Earth -> Jupiter porkchop
-dep_dates_0 = '1976-02-01'
-dep_dates_1 = '1979-11-07'
+dep_dates_0 = '1977-02-01'
+dep_dates_1 = '1978-11-07'
 arr_dates_0 = '1978-02-01'
 arr_dates_1 = '1980-12-01'
 
+
+planet_0_dep = spice.utc2et(dep_dates_0)
 norm_dep, norm_arr, C3_shorts, departure_velocities, arrival_velocities = johann(
     departure_planet, arrival_planet,
     dep_dates_0, dep_dates_1, arr_dates_0, arr_dates_1
 )
+
+
 
 # Jupiter -> Saturn
 planet0 = 'Jupiter'
@@ -172,71 +196,104 @@ arr_dates_2_i = "1980-01-01"
 arr_dates_2_f = "1983-01-01"
 
 # Compute ET arrays for second leg
-step = 50*24*3600  # example
-
+step = 50*24*3600  
 
 et_departures = np.arange(spice.utc2et(dep_dates_2_i), spice.utc2et(dep_dates_2_f)+step, step)
 et_arrivals   = np.arange(spice.utc2et(arr_dates_2_i), spice.utc2et(arr_dates_2_f)+step, step)
 
-print(et_departures)
+
+
+#print(et_departures)
 ds = len(et_departures)
 as_ = len(et_arrivals)
 
-# Loop over all departure/arrival combinations
 
-q = 1
+r_jup = 69911
+mu_jup = 126.687*10**6
 
+def altitude(delta_a, v_infx):
+    e = 1 / np.sin(delta_a / 2)
+    r_p = (e - 1) * mu_jup / v_infx**2
+    h = r_p - r_jup
+    return h
 
-success_dep = []
-success_arr = []
-for na in range(as_):
-    for nd in range(ds):
-        tof = et_arrivals[na] - et_departures[nd]
-        prev_na = min(na, arrival_velocities.shape[0]-1)
-        prev_nd = min(nd, arrival_velocities.shape[1]-1)
-        v_sc_incoming = arrival_velocities[prev_na, prev_nd]
+terra_dates = []
+jup_dates = []
+sat_dates = []
 
-        try:
-            tof_2, v_sc_depart_2, v_sc_arrive_2 = vinfinity_match(
-                departure_planet, arrival_planet,
-                v_sc_incoming,
-                et_departures[nd], tof
-            )
-            #print(f"Success: tof_2 = {tof_2} seconds for departure index {nd}, arrival index {na}")
-            # Departure date
-            print(q)
-            dep_date_utc = spice.et2utc(et_departures[nd], 'C', 0)
-            print(f"Departure: {dep_date_utc}")
-            # Arrival date = original arrival + new TOF
-            arr_date_utc = spice.et2utc(et_departures[nd] + tof_2, 'C', 0)
-            print(f"Arrival (with new TOF): {arr_date_utc}")
+for i in range(arrival_velocities.shape[1]): 
+
+    for na in range(as_):
+        for nd in range(ds):
             
-            dep_date = datetime.strptime(dep_date_utc, "%Y %b %d %H:%M:%S")
-            arr_date = datetime.strptime(arr_date_utc, "%Y %b %d %H:%M:%S")
             
-            success_dep.append(dep_date)
-            success_arr.append(arr_date)
+            tof = et_arrivals[na] - et_departures[nd]
 
+            v_sc_incoming = arrival_velocities[nd, i]
 
-            q = q + 1
-        except RuntimeError as e:
-            #print(f"Warning: Newton iteration failed for departure index {nd}, arrival index {na}. Skipping.")
-            continue  # skip this case
+            try:
+                tof_2, v_sc_depart_2, v_sc_arrive_2 = vinfinity_match(
+                    departure_planet, arrival_planet,
+                    v_sc_incoming,
+                    et_departures[nd], tof
+                )
+                
+            
+            
+            except RuntimeError:
+                #print(f"Warning: Newton iteration failed for departure index {nd}, arrival index {na}. Skipping.")
+                continue  # skip this case
+                
+            else:   
+                
+                state_Jupiter_flyby = calc_ephemeris(departure_planet, et_departures[nd], FRAME, OBSERVER)
+                dep_ter = planet_0_dep + (i * 50 * 86400)
+                dep_jup = et_departures[nd]
+                arr_sat = et_departures[nd] + tof_2
+                
+                
+                vinf_in = v_sc_incoming - state_Jupiter_flyby[3:]
+                vinf_out = v_sc_depart_2 - state_Jupiter_flyby[3:]
+                    
+                def_angle = np.arccos(np.dot(vinf_in, vinf_out) / (norm(vinf_in) * norm(vinf_out)))
+                   
+                v_inf_mag = norm(vinf_in)
+                h = altitude(def_angle, v_inf_mag)
+                
+                if h > 0 and vinf_in[0] < 0:
+                    
+                    terra_dates.append(dep_ter)
+                    jup_dates.append(dep_jup)
+                    sat_dates.append(arr_sat)
+                    
+                    print(" --- Success --- ")
+                    # print(nd, na)
+                    print(f"et_0 = {dep_ter}")
+                    print(f"et_1 = {dep_jup}")
+                    print(f"et_2 = {arr_sat}")
+                    # print('\n')
+                    # print(f"The altitude is {h} km")
+                    # print(f"incoming: {v_sc_incoming}")
+                    # print(f"Outgoing: {v_sc_depart_2}")
+                    # print(vinf_in)
+                    # print(vinf_out)
+                    # print('\n')
+                    # print('\n')
             
 
 
-# Define linewdith
-lw = 1.5
+# # Define linewdith
+# lw = 1.5
 
-'''
-Create The Plots
-'''
-fig, ax = plt.subplots()
-ax.scatter(success_dep, success_arr, color='m', s=50)  # s = marker size
-ax.set_xlabel("Departure Date")
-ax.set_ylabel("Arrival Date")
-ax.set_title("Successful Lambert Solution")
+# '''
+# Create The Plots
+# '''
+# fig, ax = plt.subplots()
+# ax.scatter(success_dep, success_arr, color='m', s=50)  # s = marker size
+# ax.set_xlabel("Departure Date")
+# ax.set_ylabel("Arrival Date")
+# ax.set_title("Successful Lambert Solution")
 
-# Improve date formatting
-fig.autofmt_xdate()
-plt.show()
+# # Improve date formatting
+# fig.autofmt_xdate()
+# plt.show()

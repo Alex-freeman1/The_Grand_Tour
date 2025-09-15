@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 #Import Lambert tools
 import lambertSolver as lt
 import planetary_data as pd
-import EMJ_gravityassist as ga
+import planet_dates_ga as pg
 
 from joblib import Parallel, delayed
 from tqdm import tqdm
@@ -63,14 +63,16 @@ def calc_ephemeris(target, ets, frame, observer):
 def norm(vec):
     return np.linalg.norm(vec)
 
+
+
 # Function that uses parallel computing to loop through each planet journey and calculate the lambert transfers
 # It returns the C_3 energy of each transfer in a 2 dimensional array with the axis as the departure and arrival dates
 def johann(dep_planet, arr_planet, departure0, departure1, arrival0, arrival1):
     
     if dep_planet == "EARTH" or "MARS BARYCENTER":
-        step_size = 200
+        step_size = 50
     else:
-        step_size = 1000
+        step_size = 500
     
     step = step_size*3600*24
     
@@ -179,28 +181,14 @@ def loop_bodies(planeti, planetf):
 Earth - Mars
 '''    
 planet0 = 'Earth' #Case sensitive
-planet1 = 'Mars'
+planet1 = 'Jupiter'
 # Holds the spice name of the planets  
 departure_planet, arrival_planet = loop_bodies(planet0, planet1)
-dep_dates_0 = '1960-02-01'         # Intial departure date
-dep_dates_1 = '1970-11-07'         # Final departure date
-arr_dates_0 = '1960-02-01'         # Initial arrival date
-arr_dates_1 = '1970-12-01'          # Final arrival date 
+dep_dates_0 = '1977-02-01'
+dep_dates_1 = '1978-11-07'
+arr_dates_0 = '1978-02-01'
+arr_dates_1 = '1980-12-01'
 johann_1 = johann(departure_planet, arrival_planet, dep_dates_0, dep_dates_1, arr_dates_0, arr_dates_1)   
-
-
-'''
-Mars - Jupiter
-'''   
-planet0 = 'Mars' 
-planet1 = 'Jupiter'
-departure_planet, arrival_planet = loop_bodies(planet0, planet1)
-dep_dates_1_i = '1960-02-01'       
-dep_dates_1_f = '1970-12-01'  
-arr_dates_1_i = '1963-01-01'         
-arr_dates_1_f = '1990-01-01'
-johann_2 = johann(departure_planet, arrival_planet, dep_dates_1_i, dep_dates_1_f, arr_dates_1_i, arr_dates_1_f)   
-
 
 
 '''
@@ -209,10 +197,10 @@ Jupiter - Saturn
 planet0 = 'Jupiter' 
 planet1 = 'Saturn'
 departure_planet, arrival_planet = loop_bodies(planet0, planet1)
-dep_dates_2_i =  "1963-01-01"
-dep_dates_2_f = "1990-01-01"
-arr_dates_2_i = "1967-01-01"
-arr_dates_2_f = "2010-01-01"
+dep_dates_2_i = "1978-02-01"
+dep_dates_2_f = "1980-12-01"
+arr_dates_2_i = "1980-01-01"
+arr_dates_2_f = "1983-01-01"
 johann_3 = johann(departure_planet, arrival_planet, dep_dates_2_i, dep_dates_2_f, arr_dates_2_i, arr_dates_2_f)   
 
 
@@ -223,10 +211,10 @@ planet0 = 'Saturn'
 planet1 = 'Uranus'
 departure_planet, arrival_planet = loop_bodies(planet0, planet1)
 arrival_planet = "URANUS BARYCENTER"
-dep_dates_3_i =  "1967-01-01"
-dep_dates_3_f = "2010-01-01"
-arr_dates_3_i = "1974-01-01"
-arr_dates_3_f = "2036-01-01"
+dep_dates_3_i =  "1980-01-01"
+dep_dates_3_f = "1983-01-01"
+arr_dates_3_i = "1986-01-01"
+arr_dates_3_f = "1998-01-01"
 johann_4 = johann(departure_planet, arrival_planet, dep_dates_3_i, dep_dates_3_f, arr_dates_3_i, arr_dates_3_f)   
 
 
@@ -245,12 +233,32 @@ johann_4 = johann(departure_planet, arrival_planet, dep_dates_3_i, dep_dates_3_f
 
 
 # Create arrays to hold the data from the johann function, all three indicies
-date_axis = [(johann_1[0], johann_1[1]), (johann_2[0], johann_2[1]), (johann_3[0], johann_3[1]), (johann_4[0], johann_4[1])]
-c3_shorts_arrays = [johann_1[2], johann_2[2], johann_3[2], johann_4[2]]
+date_axis = [(johann_1[0], johann_1[1]), (johann_3[0], johann_3[1]), (johann_4[0], johann_4[1])]
+c3_shorts_arrays = [johann_1[2], johann_3[2], johann_4[2]]
 
 '''
 plot snake step 
 '''
+
+
+step_size__ = 50
+start_date0 = spice.utc2et("1977-02-01")
+start_date1 = spice.utc2et("1978-02-01")
+start_date2 = spice.utc2et("1980-01-01")
+
+ter_dates = pg.ter_dates_ga
+jup_dates = pg.jup_dates_ga
+sat_dates = pg.sat_dates_ga
+
+points_0 = np.array(ter_dates) - start_date0
+points_1 = np.array(jup_dates) - start_date1
+points_2 = np.array(sat_dates) - start_date2
+
+
+points_days_0 = points_0 / (86400)
+points_days_1 = points_1 / (86400)
+points_days_2 = points_2 / (86400)
+
 
 # Define linewdith
 lw = 0.5
@@ -258,7 +266,7 @@ fig = plt.figure(figsize=(100,100))
 
 
 # Let the number plots be a variable n_plots
-n_plots = 4
+n_plots = 3
 
 # Size of each subplot
 w, h = 0.25, 0.25  
@@ -269,20 +277,19 @@ x, y = 0.1, 0.1
 axes = []                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
 
 # Define levels for the contour plot 
-c3_levels_0 = np.arange(10, 200, 50)
-c3_levels_1 = np.arange( 50, 500, 50)
-c3_levels_2 = np.arange( 10, 500, 100)
-c3_levels_3 = np.arange( 10, 1000, 30)
 
-energy_levels = [c3_levels_0, c3_levels_1, c3_levels_2, c3_levels_3, c3_levels_3]
+c3_levels_1 = np.arange( 50, 500, 30)
+c3_levels_2 = np.arange( 10, 500, 30)
+c3_levels_3 = np.arange( 10, 500, 30)
+
+energy_levels = [c3_levels_1, c3_levels_1, c3_levels_2, c3_levels_3]
 
 # Name the different segments
-segment_names = ["Earth to Mars", "Mars to Jupiter", "Jupiter to Saturn", "Saturn to Uranus", "Uranus to Neptune"]
+segment_names = ["Earth to Jupiter", "Jupiter to Saturn", "Saturn to Uranus", "Uranus to Neptune"]
 
 # Create a tuple to hold all the dates for each porkchop plot
 date_names = (
     (dep_dates_0, dep_dates_1, arr_dates_0, arr_dates_1),  
-    (dep_dates_1_i, dep_dates_1_f, arr_dates_1_i, arr_dates_1_f),
     (dep_dates_2_i, dep_dates_2_f, arr_dates_2_i, arr_dates_2_f),
     (dep_dates_3_i, dep_dates_3_f, arr_dates_3_i, arr_dates_3_f)
 )
@@ -310,19 +317,14 @@ for i in range(n_plots):
         ax.xaxis.set_label_position('top')
         ax.grid(True, linestyle='--', color='gray', linewidth=0.5)
         
-        # if i == 0:
-        #     for each in depart_indicies:
-        #         ax.axhline(y = each, color='red', linestyle='--')
+        if i == 0:
+            ax.axvline(x = points_days_0[0], color='red', linestyle='--')
+            ax.axhline(y = points_days_1[0], color='red', linestyle='--')
             
-        #     ax.axhline(y = first_id, color='blue', linestyle='--')
-                
-        #     for each2 in depart_indicies2:
-        #         ax.axvline(x = each2, color='blue', linestyle='--')
-        # if i == 2:
-        #     ax.axvline(x=saturnminline, color='red', linestyle='--')
-            
+        if i == 2:
+            ax.axvline(x = points_days_2[0], color='red', linestyle='--')
         
-        
+       
         
     # Odd plots: rotated and flipped
     else:
@@ -340,11 +342,9 @@ for i in range(n_plots):
         ax.yaxis.set_ticks_position('right')
         ax.yaxis.set_label_position('right')
         
-        # if i == 1:
-        #     ax.axvline(x=saturnminline, color='red', linestyle='--')
-            
-        # for each in depart_indicies:
-        #     ax.axhline(y = each, color='red', linestyle='--')
+        if i == 1: 
+            ax.axhline(y = points_days_1[0], color='red', linestyle='--')
+            ax.axvline(x = points_days_2[0], color='red', linestyle='--')
 
         
 

@@ -59,31 +59,128 @@ AU = 1.496e+8
 def seconds(days):
     return days * 24 * 3600
 
+
 def calc_ephemeris(target, ets, frame, observer):
     return np.array(spice.spkezr(target, ets, frame, 'NONE', observer)[0])
 
-time0 = "1977-08-15"  # Earth departure
-time1 = "1979-07-22"  # Jupiter flyby
-time2 = "1981-08-07"  # Saturn arrival
+def norm(vec):
+    return np.linalg.norm(vec)
+
+def calc_vinfinity(tof, target_planet, departure_planet, et0, vinf_target):
+    """
+    Function to compute difference between target vinfinity magnitude and
+    current vinfinity magnitude for a given time of flight (tof).
+    """
+    r1_target = calc_ephemeris(target_planet, et0 + tof, FRAME, OBSERVER)[:3]
+    state_departure = calc_ephemeris(departure_planet, et0, FRAME, OBSERVER)
+    
+    v0_sc_depart, v1_sc_arrive = lt.lambert_solver(
+        state_departure[:3],    
+        r1_target,   
+        tof,
+        mu_sun,
+        trajectory='pro'
+    )
+    
+    vinf = np.linalg.norm(v0_sc_depart - state_departure[3:])
+    return vinf_target - vinf
+
+def vinfinity_match(planet0, planet1, v_sc_incoming, et0, tof0, diff_step=1e-3, tol=1e-4):
+    """
+    Match V-infinity magnitudes for hyperbolic flyby
+    """
+    state0_planet0 = calc_ephemeris(planet0, et0, FRAME, OBSERVER)
+    vinf_incoming = v_sc_incoming - state0_planet0[3:]
+    vinf_magnitude = np.linalg.norm(vinf_incoming)
+    
+   
+    def root_func(tof):
+        return calc_vinfinity(tof, planet1, planet0, et0, vinf_magnitude)
+    
+    tof, steps = lt.newton_root_single_fd(root_func, tof0, tol=tol, diff_step=diff_step)
+    
+    r1_planet1 = calc_ephemeris(planet1, et0 + tof, FRAME, OBSERVER)[:3]
+    
+    v_sc_depart, v_sc_arrive = lt.lambert_solver(
+        state0_planet0[:3],    
+        r1_planet1,   
+        tof,
+        mu_sun,
+        trajectory='pro'
+    )
+    
+    return tof, v_sc_depart, v_sc_arrive
+
+time0 = "1977-02-01"  # Earth departure
+time1 = "1978-10-09"  # Jupiter flyby
+time2 = "1980-05-03"  # Saturn arrival
 
 
-vinf_in = [-0.33442151,  7.7244149 , -1.66190037]
-vinf_out= [-7.75599905, -1.40346388,  0.64428571]
-v_sc_arrive_1 = [-9.14381453, -1.47503865, -1.426696]
-v_sc_depart_2 = [-16.56539206, -10.60291743,  0.87949009]
-
-v_inf_in = np.array([-0.33442151,  7.7244149 , -1.66190037]) 
-h = 1901522  # altitude in km above Jupiter
-mu_J = 1.2668653e8  # km^3/s^2
-R_J = 71492.0  # km
-rp = R_J + h
+et_0 = spice.utc2et(time0)
+et_1 = spice.utc2et(time1)
+et_2 = spice.utc2et(time2)
+state0 = calc_ephemeris(Earth, et_0, FRAME, OBSERVER)
+state1 = calc_ephemeris(Jupiter, et_1, FRAME, OBSERVER)
+tof_1 = et_1 - et_0
 
 
-v_inf_mag = np.linalg.norm(v_inf_in)
-a = -mu_J / v_inf_mag**2
+
+# Lambert solution for Earth-Jupiter leg
+v_sc_depart_1, v_sc_arrive_1 = lt.lambert_solver(
+    state0[:3],    
+    state1[:3],   
+    tof_1,
+    mu_sun,
+    trajectory='pro'
+)
+
+#  ----------------------------------------------------------------------------
+
+# LEG 2: Jupiter to Saturn 
+tof_guess_2 = et_2 - et_1  # Initial guess
 
 
-e = 1 + rp * v_inf_mag**2 / mu_J
+tof_2, v_sc_depart_2, v_sc_arrive_2 = vinfinity_match(
+    Jupiter, Saturn,
+    v_sc_arrive_1,  # spacecraft velocity at Jupiter arrival
+    et_1, tof_guess_2
+)
+
+
+# Verify the Jupiter flyby
+state_Jupiter_flyby = calc_ephemeris(Jupiter, et_1, FRAME, OBSERVER)
+vinf_in = v_sc_arrive_1 - state_Jupiter_flyby[3:]
+vinf_out = v_sc_depart_2 - state_Jupiter_flyby[3:]
+
+# Calculate deflection angle
+def_angle = np.arccos(np.dot(vinf_in, vinf_out) / (norm(vinf_in) * norm(vinf_out)))
+
+
+
+mu_jup = 1.2668653e8  # km^3/s^2
+r_jup = 71492.0  # km
+
+
+
+def altitude(delta_a, v_infx):
+    e = 1 / np.sin(delta_a / 2)
+    r_p = (e - 1) * mu_jup / v_infx**2
+    h = r_p - r_jup
+    return h
+
+
+v_inf_mag = norm(vinf_in)
+h = altitude(def_angle, v_inf_mag)
+print(h)
+if h < 0:
+    raise ValueError('h should not be negative')
+
+rp = r_jup + h
+v_inf_mag = np.linalg.norm(vinf_in)
+a = -mu_jup / v_inf_mag**2
+
+
+e = 1 + rp * v_inf_mag**2 / mu_jup
 delta = 2 * np.arcsin(1 / e)
 
 def rotate_vector(v, axis, angle):
@@ -93,13 +190,13 @@ def rotate_vector(v, axis, angle):
             axis * np.dot(axis, v) * (1 - np.cos(angle)))
 
 # Arbitrary impact parameter vector perpendicular to v_inf_in
-impact_axis = np.cross(v_inf_in, [0, 0, 1])
+impact_axis = np.cross(vinf_in, [0, 0, 1])
 if np.linalg.norm(impact_axis) < 1e-6:
-    impact_axis = np.cross(v_inf_in, [0, 1, 0])  # handle edge case
+    impact_axis = np.cross(vinf_in, [0, 1, 0])  # handle edge case
 
 impact_axis = impact_axis / np.linalg.norm(impact_axis)
 
-v_inf_out = rotate_vector(v_inf_in, impact_axis, delta)
+v_inf_out = rotate_vector(vinf_in, impact_axis, delta)
 
 
 # Generate true anomalies
@@ -115,8 +212,8 @@ z_pf = np.zeros_like(x_pf)
 trajectory_pf = np.vstack([x_pf, y_pf, z_pf])  # 3 x N
 
 # Define perifocal axes
-x_hat = v_inf_in / np.linalg.norm(v_inf_in)
-z_hat = np.cross(v_inf_in, v_inf_out)
+x_hat = vinf_in / np.linalg.norm(vinf_in)
+z_hat = np.cross(vinf_in, v_inf_out)
 z_hat = z_hat / np.linalg.norm(z_hat)
 y_hat = np.cross(z_hat, x_hat)
 
@@ -136,13 +233,13 @@ ax.plot(*trajectory_inertial, color='blue', label='Hyperbolic Flyby')
 
 # Draw Jupiter as a sphere
 u, v = np.mgrid[0:2*np.pi:50j, 0:np.pi:25j]
-xj = R_J * np.cos(u) * np.sin(v)
-yj = R_J * np.sin(u) * np.sin(v)
-zj = R_J * np.cos(v)
+xj = r_jup * np.cos(u) * np.sin(v)
+yj = r_jup * np.sin(u) * np.sin(v)
+zj = r_jup * np.cos(v)
 ax.plot_surface(xj, yj, zj, color='orange', alpha=0.5)
 
 # Set equal aspect ratio (spherical appearance)
-max_range = R_J * 30  # enough to include the hyperbolic arc
+max_range = r_jup * 3 # enough to include the hyperbolic arc
 ax.set_xlim(-max_range, max_range)
 ax.set_ylim(-max_range, max_range)
 ax.set_zlim(-max_range, max_range)

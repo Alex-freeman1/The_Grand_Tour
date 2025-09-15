@@ -95,14 +95,26 @@ Saturn = pd_jupiter['spice_name']
 # time0 = "1977-08-15"  # Earth departure
 # time1 = "1979-07-22"  # Jupiter flyby
 
-time0 = "1977-08-15"  # Earth departure
-time1 = "1979-07-22"  # Jupiter flyby
-time2 = "1981-08-07"  # Saturn arrival
+# time0 = "1977-02-01"  # Earth departure
+# time1 = "1978-10-09"  # Jupiter flyby
+# time2 = "1980-05-03"  # Saturn arrival
 
 
-et_0 = spice.utc2et(time0)
-et_1 = spice.utc2et(time1)
-et_2 = spice.utc2et(time2)
+# Departure: 1980 JUL 19 23:59:58
+# Arrival (with new TOF): 1982 FEB 08 02:42:36
+
+
+string_var = "-718804751.8	-657028750.8	-598000873"
+
+arr = np.array(string_var.split(), dtype=float)
+et_0 = arr[0]
+et_1 = arr[1]
+et_2 = arr[2]
+
+
+# et_0 = spice.utc2et(time0)
+# et_1 = spice.utc2et(time1)
+# et_2 = spice.utc2et(time2)
 
 # LEG 1: Earth to Jupiter
 
@@ -120,6 +132,8 @@ v_sc_depart_1, v_sc_arrive_1 = lt.lambert_solver(
     mu_sun,
     trajectory='pro'
 )
+
+print(v_sc_arrive_1)
 
 #  ----------------------------------------------------------------------------
 
@@ -145,6 +159,8 @@ def_angle = np.arccos(np.dot(vinf_in, vinf_out) / (norm(vinf_in) * norm(vinf_out
 
 print("Gravity assist at Jupiter")
 print("------------------------")
+print(f"{norm(vinf_in)}")
+print(f"{norm(vinf_out)}")
 
 print(f"Jupiter V_inf_minis: {vinf_in} km/s")
 print(f"Jupiter V_inf_plus: {vinf_out} km/s")
@@ -153,6 +169,19 @@ print(f"Heliocentric arriving veloicty: {v_sc_arrive_1} km/s)")
 print(f"Heliocentric leaving velocity: {v_sc_depart_2} km/s")
 print(f"Leg 1 tof: {days(tof_1):.2f}")
 print(f"Leg 2 tof: {days(tof_2):.2f}")
+
+
+time0 = spice.et2utc(et_0, "C", 0)
+time1 = spice.et2utc(et_1, 'C', 0)
+# print(f"Leaving Earth: {time0}")
+# print(f"Leaving Jupiter: {time1}")
+
+
+# # Arrival date = original arrival + new TOF
+# arr_date_utc = spice.et2utc(et_1 + tof_2, 'C', 0)
+# print(f"Arrival (with new TOF): {arr_date_utc}")
+
+print(et_1 + tof_2)
 
 r_jup = 69911
 mu_jup = 126.687*10**6
