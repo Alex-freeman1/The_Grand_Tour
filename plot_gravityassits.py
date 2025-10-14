@@ -120,7 +120,6 @@ def johann(dep_planet, arr_planet, departure0, departure1, arrival0, arrival1, c
 
 # -------------------------------------------------
 # V-infinity matching for gravity assists
-# -------------------------------------------------
 
 
 def calc_vinfinity(tof, target_planet, departure_planet, et0, vinf_target):

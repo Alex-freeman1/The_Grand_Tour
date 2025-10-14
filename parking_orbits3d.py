@@ -381,7 +381,7 @@ for i in range(length_points):
     v_helio_ = circ_velocity_at_point_with_incl(points[i], planet_centre, i_deg, mu_jup)
     
     if v_helio_ is None or np.any(np.isnan(v_helio_)):
-        C3_short = np.nan  # or just skip this point
+        C3_short = np.nan  
 
 
     else:

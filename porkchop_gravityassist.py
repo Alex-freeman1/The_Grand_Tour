@@ -69,10 +69,7 @@ def norm(vec):
 # It returns the C_3 energy of each transfer in a 2 dimensional array with the axis as the departure and arrival dates
 def johann(dep_planet, arr_planet, departure0, departure1, arrival0, arrival1):
     
-    if dep_planet == "EARTH" or "MARS BARYCENTER":
-        step_size = 50
-    else:
-        step_size = 500
+    step_size = 100
     
     step = step_size*3600*24
     
@@ -218,6 +215,8 @@ arr_dates_3_f = "1998-01-01"
 johann_4 = johann(departure_planet, arrival_planet, dep_dates_3_i, dep_dates_3_f, arr_dates_3_i, arr_dates_3_f)   
 
 
+
+
 # '''
 # Uranus - Neptune
 # ''' 
@@ -249,6 +248,8 @@ start_date2 = spice.utc2et("1980-01-01")
 ter_dates = pg.ter_dates_ga
 jup_dates = pg.jup_dates_ga
 sat_dates = pg.sat_dates_ga
+#print(ter_dates[85],jup_dates[85], sat_dates[85])
+
 
 points_0 = np.array(ter_dates) - start_date0
 points_1 = np.array(jup_dates) - start_date1
@@ -262,27 +263,27 @@ points_days_2 = points_2 / (86400)
 
 # Define linewdith
 lw = 0.5
-fig = plt.figure(figsize=(100,100))   
+
 
 
 # Let the number plots be a variable n_plots
-n_plots = 3
-
+n_plots = 2
+fig = plt.figure(figsize=(100,100))   
 # Size of each subplot
-w, h = 0.25, 0.25  
+w, h = 0.4,0.4
 
 # Initial position
-x, y = 0.1, 0.1  
+x, y = 0.1, 0.15 
 
 axes = []                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
-
+font_size = 12
 # Define levels for the contour plot 
+c3_levels_earth = np.arange(0, 300, 20)
+c3_levels_jupiter = np.arange(0, 300, 30)
 
-c3_levels_1 = np.arange( 50, 500, 30)
-c3_levels_2 = np.arange( 10, 500, 30)
-c3_levels_3 = np.arange( 10, 500, 30)
 
-energy_levels = [c3_levels_1, c3_levels_1, c3_levels_2, c3_levels_3]
+
+energy_levels = [c3_levels_earth, c3_levels_jupiter, c3_levels_jupiter]
 
 # Name the different segments
 segment_names = ["Earth to Jupiter", "Jupiter to Saturn", "Saturn to Uranus", "Uranus to Neptune"]
@@ -316,14 +317,25 @@ for i in range(n_plots):
         ax.xaxis.set_ticks_position('top')
         ax.xaxis.set_label_position('top')
         ax.grid(True, linestyle='--', color='gray', linewidth=0.5)
+        x_end = ax.get_xlim()[1]
+        y_end = ax.get_ylim()[1]
         
+        t = [4,85]
         if i == 0:
-            ax.axvline(x = points_days_0[0], color='red', linestyle='--')
-            ax.axhline(y = points_days_1[0], color='red', linestyle='--')
+            
+            for n in t:
+                color_x = 'red' if n == 4 else 'blue'
+                ax.plot([points_days_0[n], x_end], [points_days_1[n], points_days_1[n]], color=color_x, linestyle='--')
+                plt.plot(points_days_0[n], points_days_1[n], marker='^', color=color_x)
+            
+            # ax.axvline(x = points_days_0[0], color='red', linestyle='--')
+            # ax.axhline(y = points_days_1[0], color='red', linestyle='--')
             
         if i == 2:
             
-            ax.axvline(x = points_days_2[i], color='red', linestyle='--')
+           for n in t:
+                color_x = 'red' if n == 4 else 'blue'
+                ax.axvline(x = points_days_2[n], color=color_x, linestyle='--')
             
             # for i in range(points_days_2.shape[0]):
             #     if points_days_2[i] < 0:
@@ -331,7 +343,7 @@ for i in range(n_plots):
             #     else:
             #         ax.axvline(x = points_days_2[i], color='red', linestyle='--')
         
-       
+        ax.set_title(f"Segment {segment_names[i]}", fontsize=font_size)
         
     # Odd plots: rotated and flipped
     else:
@@ -348,16 +360,23 @@ for i in range(n_plots):
         ax.xaxis.set_label_position('bottom')
         ax.yaxis.set_ticks_position('right')
         ax.yaxis.set_label_position('right')
-        
+        x_end = ax.get_xlim()[1]
+        y_end = ax.get_ylim()[1]
+        t = [4,85]
         if i == 1: 
-            ax.axhline(y = points_days_1[0], color='red', linestyle='--')
-            ax.axvline(x = points_days_2[0], color='red', linestyle='--')
-
-        
-
-    ax.set_title(f"Segment {segment_names[i]}", fontsize=8)
-    ax.grid(True, linestyle='--', color='gray', linewidth=0.5)
-    axes.append(ax) 
+            
+            for n in t:
+                color_x = 'red' if n == 4 else 'blue'
+                ax.plot([0, points_days_2[n]], [points_days_1[n], points_days_1[n]], color=color_x, linestyle='--')
+                ax.plot([points_days_2[n], points_days_2[n]], [points_days_1[n], y_end], color=color_x, linestyle='--')
+                plt.plot(points_days_2[n], points_days_1[n], marker='^', color=color_x)
+                
+                
+        ax.text(
+            0.5, -0.1, f"Segment {segment_names[i]}",
+            transform=ax.transAxes,
+            ha='center', va='bottom', fontsize=font_size
+        )
 
     # Snake step layout
     if i % 2 == 0:

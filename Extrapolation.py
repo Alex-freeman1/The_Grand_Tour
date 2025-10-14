@@ -48,7 +48,7 @@ arrival_planet1 = pd_req2['spice_name']
 
 pi = np.pi
 OBSERVER= pd.sun['name']
-FRAME='ECLIPJ2000 '
+FRAME='ECLIPJ2000'
 mu_sun = pd.sun['mu']
 
 def norm(vec):
@@ -76,9 +76,20 @@ et_4 =  spice.utc2et(arrival3)
 
 et_times = [et_0, et_1, et_2, et_3, et_4]
 
-ephem_0 = calc_ephemeris(departure_planet, et_times[0], FRAME, OBSERVER)
-ephem_1 = calc_ephemeris(arrival_planet0, et_times[1], FRAME, OBSERVER)
-ephem_2 = calc_ephemeris(arrival_planet1, et_times[2], FRAME, OBSERVER)
+#string_var = "-705844751.8	-657028750.8 	-602686124.7"
+
+string_var = "-705844751.8 -661348750.8 -611537698.9"
+
+arr = np.array(string_var.split(), dtype=float)
+et_0 = arr[0]
+et_1 = arr[1]
+et_2 = arr[2]
+
+
+
+ephem_0 = calc_ephemeris(departure_planet, et_0, FRAME, OBSERVER)
+ephem_1 = calc_ephemeris(arrival_planet0, et_1, FRAME, OBSERVER)
+ephem_2 = calc_ephemeris(arrival_planet1, et_2, FRAME, OBSERVER)
 ephem_3 = calc_ephemeris('URANUS BARYCENTER', et_times[3], FRAME, OBSERVER)
 ephem_4 = calc_ephemeris('NEPTUNE BARYCENTER', et_times[4], FRAME, OBSERVER)
 
@@ -195,8 +206,8 @@ r4_neptune = ephems[4][:3]
 ax.plot(x_earth, y_earth, z_earth, label="Earth's Orbit", color="b")
 ax.plot(x_jupiter, y_jupiter, z_jupiter, label="Jupiter's Orbit", color="r")
 ax.plot(x_saturn, y_saturn, z_saturn, label="Saturn's Orbit", color="g")
-ax.plot(x_uranus, y_uranus, z_uranus, label="Uranus's Orbit", color="c")
-ax.plot(x_neptune, y_neptune, z_neptune, label="Neptunes's Orbit", color="b")
+# ax.plot(x_uranus, y_uranus, z_uranus, label="Uranus's Orbit", color="c")
+# ax.plot(x_neptune, y_neptune, z_neptune, label="Neptunes's Orbit", color="b")
 
 #Mark the Sun at (0,0,0)# Mark the Sun at (0,0,0)
 ax.scatter(0, 0, 0, color='yellow', s=100, label="Sun")
@@ -204,14 +215,14 @@ ax.scatter(0, 0, 0, color='yellow', s=100, label="Sun")
 
 ax.plot(x, y,z, label='Lambert Trajectory')
 ax.plot(xj1, yj1, zj1, label='Lambert Trajectory')
-ax.plot(xs1, ys2, zs3, label='Lambert Trajectory')
-ax.plot(xu1, yu2, zu3, label='Lambert Trajectory')
+# ax.plot(xs1, ys2, zs3, label='Lambert Trajectory')
+# ax.plot(xu1, yu2, zu3, label='Lambert Trajectory')
 
 ax.scatter(*r0_earth, color='blue', marker='o', s=100, label='Earth Departure')
 ax.scatter(*r1_jupiter, color='red', marker='o', s=100, label='Jupiter Arrival')
 ax.scatter(*r2_saturn, color='green', marker='o', s=100, label='Saturn Arrival')
-ax.scatter(*r3_uranus, color='pink', marker='o', s=100, label='Uranus Arrival')
-ax.scatter(*r4_neptune, color='blue', marker='o', s=100, label='Neptune Arrival')
+# ax.scatter(*r3_uranus, color='pink', marker='o', s=100, label='Uranus Arrival')
+# ax.scatter(*r4_neptune, color='blue', marker='o', s=100, label='Neptune Arrival')
 ax.set_xlabel("X (km)")
 ax.set_ylabel("Y (km)")
 ax.set_zlabel("Z (km)")

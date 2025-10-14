@@ -64,9 +64,9 @@ def norm(vec):
 # Function that uses parallel computing to loop through each planet journey and calculate the lambert transfers
 # It returns the C_3 energy of each transfer in a 2 dimensional array with the axis as the departure and arrival dates
 def johann(dep_planet, arr_planet, departure0, departure1, arrival0, arrival1):
-    
-    if dep_planet == "EARTH" or "MARS BARYCENTER":
-        step_size = 50
+      
+    if dep_planet == "EARTH" or dep_planet == "MARS BARYCENTER":
+       	step_size = 50
     else:
         step_size = 300
     
@@ -180,11 +180,12 @@ planet0 = 'Earth' #Case sensitive
 planet1 = 'Mars'
 # Holds the spice name of the planets  
 departure_planet, arrival_planet = loop_bodies(planet0, planet1)
-dep_dates_0 = '1960-02-01'         # Intial departure date
-dep_dates_1 = '1970-11-07'         # Final departure date
-arr_dates_0 = '1960-02-01'         # Initial arrival date
+dep_dates_0 = '1964-02-01'         # Intial departure date
+dep_dates_1 = '1969-11-07'         # Final departure date
+arr_dates_0 = '1965-02-01'         # Initial arrival date
 arr_dates_1 = '1970-12-01'          # Final arrival date 
 johann_1 = johann(departure_planet, arrival_planet, dep_dates_0, dep_dates_1, arr_dates_0, arr_dates_1)   
+
 
 
 '''
@@ -193,9 +194,9 @@ Mars - Jupiter
 planet0 = 'Mars' 
 planet1 = 'Jupiter'
 departure_planet, arrival_planet = loop_bodies(planet0, planet1)
-dep_dates_1_i = '1960-02-01'       
+dep_dates_1_i = '1965-02-01'       
 dep_dates_1_f = '1970-12-01'  
-arr_dates_1_i = '1963-01-01'         
+arr_dates_1_i = '1966-01-01'         
 arr_dates_1_f = '1990-01-01'
 johann_2 = johann(departure_planet, arrival_planet, dep_dates_1_i, dep_dates_1_f, arr_dates_1_i, arr_dates_1_f)   
 
@@ -207,7 +208,7 @@ Jupiter - Saturn
 planet0 = 'Jupiter' 
 planet1 = 'Saturn'
 departure_planet, arrival_planet = loop_bodies(planet0, planet1)
-dep_dates_2_i =  "1963-01-01"
+dep_dates_2_i =  "1966-01-01"
 dep_dates_2_f = "1990-01-01"
 arr_dates_2_i = "1967-01-01"
 arr_dates_2_f = "2010-01-01"
@@ -246,7 +247,7 @@ johann_5 = johann(departure_planet, arrival_planet, dep_dates_4_i, dep_dates_4_f
 
 '''
 minium value finder
-'''
+
 min_index = np.unravel_index(np.argmin(johann_3[2]), johann_3[2].shape)
 min_value = johann_3[2][min_index]
 row, col = map(int, min_index)
@@ -285,11 +286,19 @@ new_date2 = start_date + timedelta(days=700)
 print(new_date1.strftime('%Y-%m-%d'))
 print(new_date2.strftime('%Y-%m-%d'))
 
-
+'''
 
 # Create arrays to hold the data from the johann function, all three indicies
-date_axis = [(johann_1[0], johann_1[1]), (johann_2[0], johann_2[1]), (johann_3[0], johann_3[1]), (johann_4[0], johann_4[1]), (johann_5[0], johann_5[1])]
-c3_shorts_arrays = [johann_1[2], johann_2[2], johann_3[2], johann_4[2], johann_5[2]]
+
+johanns = [johann_1, johann_2, johann_3, johann_4, johann_5]
+
+date_axis = []
+c3_shorts_arrays = []
+
+for j in johanns:
+    date_axis.append((j[0], j[1]))
+    c3_shorts_arrays.append(j[2])
+    
 
 
 '''
@@ -297,28 +306,32 @@ plot snake step
 '''
 
 # Define linewdith
-lw = 0.5
+lw = 0.3
 fig = plt.figure(figsize=(100,100))   
 
 
 # Let the number plots be a variable n_plots
-n_plots = 5  
+n_plots = 5
 
 # Size of each subplot
-w, h = 0.25, 0.25  
+w, h = 1.2 * (1/n_plots), 1.2 * (1/n_plots)
 
 # Initial position
-x, y = 0.1, 0.1  
+x, y = 0.1, 0.1
 
 axes = []                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
-
+font_size = 12
 # Define levels for the contour plot 
-c3_levels_0 = np.arange(10, 200, 50)
-c3_levels_1 = np.arange( 50, 500, 50)
-c3_levels_2 = np.arange( 10, 500, 100)
-c3_levels_3 = np.arange( 10, 1000, 30)
+# c3_levels_0 = np.arange(0, 300, 10)
+# c3_levels_1 = np.arange( 0, 300, 20)
+# c3_levels_2 = np.arange( 0, 300, 5)
 
-energy_levels = [c3_levels_0, c3_levels_1, c3_levels_2, c3_levels_3, c3_levels_3]
+c3_levels_0 = np.arange(0, 40, 5)
+c3_levels_1 = np.arange( 0, 60, 5)
+c3_levels_2 = np.arange( 0, 40, 5)
+
+
+energy_levels = [c3_levels_0, c3_levels_1, c3_levels_2, c3_levels_2, c3_levels_2]
 
 # Name the different segments
 segment_names = ["Earth to Mars", "Mars to Jupiter", "Jupiter to Saturn", "Saturn to Uranus", "Uranus to Neptune"]
@@ -347,8 +360,8 @@ for i in range(n_plots):
         
         cont  = ax.contour(date_axis[i][0], date_axis[i][1], c3_shorts_arrays[i], levels=energy_levels[i], colors='m', linewidths = lw)
         plt.clabel( cont, fmt = '%i')
-        ax.set_xlabel(f"Departure (Days Past {date_names[i][0]})")
-        ax.set_ylabel(f"Arrival (Days Past {date_names[i][2]})")
+        ax.set_xlabel(f"Departure (Days Past {date_names[i][0]})", fontsize=font_size)
+        ax.set_ylabel(f"Arrival (Days Past {date_names[i][2]})", fontsize=font_size)
         ax.xaxis.set_ticks_position('top')
         ax.xaxis.set_label_position('top')
         ax.grid(True, linestyle='--', color='gray', linewidth=0.5)
@@ -367,7 +380,7 @@ for i in range(n_plots):
         # if i == 2:
         #     ax.axvline(x=saturnminline, color='red', linestyle='--')
         ''' 
-        
+        ax.set_title(f"Segment {segment_names[i]}", fontsize=font_size)
         
         
     # Odd plots: rotated and flipped
@@ -379,8 +392,8 @@ for i in range(n_plots):
         cont  = ax.contour(date_axis[i][1], date_axis[i][0][::-1],  Z_rot, levels=energy_levels[i],colors='m', linewidths = lw)
         plt.clabel( cont, fmt = '%i')
         
-        ax.set_ylabel(f"Departure (Days Past {date_names[i][0]})")
-        ax.set_xlabel(f"Arrival (Days Past {date_names[i][2]})")
+        ax.set_ylabel(f"Departure (Days Past {date_names[i][0]})", fontsize=font_size)
+        ax.set_xlabel(f"Arrival (Days Past {date_names[i][2]})", fontsize=font_size)
         ax.xaxis.set_ticks_position('bottom')
         ax.xaxis.set_label_position('bottom')
         ax.yaxis.set_ticks_position('right')
@@ -395,10 +408,16 @@ for i in range(n_plots):
             ax.axhline(y = each, color='red', linestyle='--')
 
         '''
-
-    ax.set_title(f"Segment {segment_names[i]}", fontsize=8)
+        ax.text(
+            0.5, -0.17, f"Segment {segment_names[i]}",
+            transform=ax.transAxes,
+            ha='center', va='bottom', fontsize=font_size
+        )
+        
+    
     ax.grid(True, linestyle='--', color='gray', linewidth=0.5)
     axes.append(ax) 
+    plt.tick_params(axis='both', which='major', labelsize=10)
 
     # Snake step layout
     if i % 2 == 0:
@@ -407,3 +426,18 @@ for i in range(n_plots):
         y += h
 
 plt.show()
+
+
+# leg_len = len(c3_shorts_arrays)
+# for i in range(leg_len):
+#     n_dep, n_arr = c3_shorts_arrays[i].shape
+#     for i_dep in range(n_dep):
+#         for i_arr in range(n_arr):
+#             value = c3_shorts_arrays[i][i_dep, i_arr]
+            
+#             if i == 1:
+#                 total_energy = c3_shorts_arrays[i][i_dep, i_arr]
+#             else:
+#                 total_energy = total_energy_prev + C3(t_dep, t_arr)
+#             if total_energy < current_min:
+#                 store trajectory and energy

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jul 22 18:34:14 2025
+Created on Mon Oct 13 13:07:30 2025
 
 @author: alexa
 """
@@ -71,7 +71,7 @@ def norm(vec):
 # Function that uses parallel computing to loop through each planet journey and calculate the lambert transfers
 # It returns the C_3 energy of each transfer in a 2 dimensional array with the axis as the departure and arrival dates
 def johann(dep_planet, arr_planet, departure0, departure1, arrival0, arrival1):
-    
+      
     step_size = 5
     
     step = step_size*3600*24
@@ -178,64 +178,86 @@ def loop_bodies(planeti, planetf):
 
 
 '''
-Earth - Jupiter
+Earth - Mars
 '''    
 planet0 = 'Earth' #Case sensitive
-planet1 = 'Jupiter'
+planet1 = 'Mars'
 # Holds the spice name of the planets  
 departure_planet, arrival_planet = loop_bodies(planet0, planet1)
-dep_dates_0 = '1976-02-01'         # Intial departure date
-dep_dates_1 = '1979-11-07'         # Final departure date
-arr_dates_0 = '1976-01-01'         # Initial arrival date
-arr_dates_1 = '1982-01-01'          # Final arrival date 
+dep_dates_0 = '1964-02-01'         # Intial departure date
+dep_dates_1 = '1969-11-07'         # Final departure date
+arr_dates_0 = '1965-02-01'         # Initial arrival date
+arr_dates_1 = '1971-12-01'          # Final arrival date 
 johann_1 = johann(departure_planet, arrival_planet, dep_dates_0, dep_dates_1, arr_dates_0, arr_dates_1)   
 
 
+
 '''
-Jupiter - Saturn
-''' 
-planet0 = 'Jupiter' 
-planet1 = 'Saturn'
+Mars - Jupiter
+'''   
+planet0 = 'Mars' 
+planet1 = 'Jupiter'
 departure_planet, arrival_planet = loop_bodies(planet0, planet1)
-dep_dates_2_i =  "1976-01-01"
-dep_dates_2_f = "1982-01-01"
-arr_dates_2_i = "1977-01-01"
-arr_dates_2_f = "1987-01-01"
-johann_3 = johann(departure_planet, arrival_planet, dep_dates_2_i, dep_dates_2_f, arr_dates_2_i, arr_dates_2_f)   
+dep_dates_1_i = '1965-02-01'       
+dep_dates_1_f = '1971-12-01'  
+arr_dates_1_i = '1966-01-01'         
+arr_dates_1_f = '1990-01-01'
+johann_2 = johann(departure_planet, arrival_planet, dep_dates_1_i, dep_dates_1_f, arr_dates_1_i, arr_dates_1_f)   
 
 
-'''
-Saturn - Uranus
-''' 
-planet0 = 'Saturn' 
-planet1 = 'Uranus'
-departure_planet, arrival_planet = loop_bodies(planet0, planet1)
-arrival_planet = "URANUS BARYCENTER"
-dep_dates_3_i =  "1977-01-01"
-dep_dates_3_f = "1987-01-01"
-arr_dates_3_i = "1980-01-01"
-arr_dates_3_f = "1995-01-01"
-johann_4 = johann(departure_planet, arrival_planet, dep_dates_3_i, dep_dates_3_f, arr_dates_3_i, arr_dates_3_f)   
+
+# '''
+# Jupiter - Saturn
+# ''' 
+# planet0 = 'Jupiter' 
+# planet1 = 'Saturn'
+# departure_planet, arrival_planet = loop_bodies(planet0, planet1)
+# dep_dates_2_i =  "1966-01-01"
+# dep_dates_2_f = "1990-01-01"
+# arr_dates_2_i = "1967-01-01"
+# arr_dates_2_f = "2010-01-01"
+# johann_3 = johann(departure_planet, arrival_planet, dep_dates_2_i, dep_dates_2_f, arr_dates_2_i, arr_dates_2_f)   
 
 
-'''
-Uranus - Neptune
-''' 
-departure_planet = "URANUS BARYCENTER"
-arrival_planet = "NEPTUNE BARYCENTER"
-dep_dates_4_i =  "1980-01-01"
-dep_dates_4_f = "1995-01-01"
-arr_dates_4_i = "1983-01-01"
-arr_dates_4_f = "1998-01-01"
-johann_5 = johann(departure_planet, arrival_planet, dep_dates_4_i, dep_dates_4_f, arr_dates_4_i, arr_dates_4_f)   
+# '''
+# Saturn - Uranus
+# ''' 
+# planet0 = 'Saturn' 
+# planet1 = 'Uranus'
+# departure_planet, arrival_planet = loop_bodies(planet0, planet1)
+# arrival_planet = "URANUS BARYCENTER"
+# dep_dates_3_i =  "1967-01-01"
+# dep_dates_3_f = "2010-01-01"
+# arr_dates_3_i = "1974-01-01"
+# arr_dates_3_f = "2036-01-01"
+# johann_4 = johann(departure_planet, arrival_planet, dep_dates_3_i, dep_dates_3_f, arr_dates_3_i, arr_dates_3_f)   
 
+
+# '''
+# Uranus - Neptune
+# ''' 
+# departure_planet = "URANUS BARYCENTER"
+# arrival_planet = "NEPTUNE BARYCENTER"
+# dep_dates_4_i =  "1974-01-01"
+# dep_dates_4_f = "2036-01-01"
+# arr_dates_4_i = "1984-01-01"
+# arr_dates_4_f = "2045-01-01"
+# johann_5 = johann(departure_planet, arrival_planet, dep_dates_4_i, dep_dates_4_f, arr_dates_4_i, arr_dates_4_f)   
 
 
 
 
 # Create arrays to hold the data from the johann function, all three indicies
-date_axis = [(johann_1[0], johann_1[1]), (johann_3[0], johann_3[1]), (johann_4[0], johann_4[1]), (johann_5[0], johann_5[1])]
-c3_shorts_arrays = [johann_1[2], johann_3[2], johann_4[2], johann_5[2]]
+
+#johanns = [johann_1, johann_2, johann_3, johann_4, johann_5]
+johanns = [johann_1, johann_2]
+date_axis = []
+c3_shorts_arrays = []
+
+for j in johanns:
+    date_axis.append((j[0], j[1]))
+    c3_shorts_arrays.append(j[2])
+    
 
 
 '''
@@ -243,70 +265,47 @@ plot snake step
 '''
 
 # Define linewdith
-lw = 0.5
+lw = 0.3
 fig = plt.figure(figsize=(100,100))   
 
 
 # Let the number plots be a variable n_plots
-n_plots = len(c3_shorts_arrays)
+n_plots = len(johanns)
 
 # Size of each subplot
-w, h = 0.25, 0.25  
+w, h = 0.4,0.4
 
 # Initial position
-x, y = 0.1, 0.15  
+x, y = 0.1, 0.15
 
 axes = []                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
 font_size = 12
 # Define levels for the contour plot 
-c3_levels_0 = np.arange(0, 200, 20)
-c3_levels_1 = np.arange( 0, 700, 40)
-c3_levels_2 = np.arange( 0, 500, 20)
-c3_levels_earth = np.arange( 0, 300, 30)
+# c3_levels_0 = np.arange(0, 300, 10)
+# c3_levels_1 = np.arange( 0, 300, 20)
+# c3_levels_2 = np.arange( 0, 300, 5)
 
-energy_levels = [c3_levels_earth, c3_levels_1, c3_levels_1, c3_levels_2]
+c3_levels_jupiter = np.arange(0, 70, 5)
+c3_levels_earth = np.arange(0, 50, 5)
+
+c3_levels_1 = np.arange( 0, 60, 5)
+c3_levels_2 = np.arange( 0, 40, 5)
+
+
+energy_levels = [c3_levels_earth, c3_levels_jupiter, c3_levels_2, c3_levels_2, c3_levels_2]
 
 # Name the different segments
-segment_names = ["Earth to Jupiter", "Jupiter to Saturn", "Saturn to Uranus", "Uranus to Neptune"]
+segment_names = ["Earth to Mars", "Mars to Jupiter", "Jupiter to Saturn", "Saturn to Uranus", "Uranus to Neptune"]
+
 
 # Create a tuple to hold all the dates for each porkchop plot
 date_names = (
     (dep_dates_0, dep_dates_1, arr_dates_0, arr_dates_1),  
-    (dep_dates_2_i, dep_dates_2_f, arr_dates_2_i, arr_dates_2_f),
-    (dep_dates_3_i, dep_dates_3_f, arr_dates_3_i, arr_dates_3_f),
-    (dep_dates_4_i, dep_dates_4_f, arr_dates_4_i, arr_dates_4_f)
+    (dep_dates_1_i, dep_dates_1_f, arr_dates_1_i, arr_dates_1_f),
+    # (dep_dates_2_i, dep_dates_2_f, arr_dates_2_i, arr_dates_2_f),
+    # (dep_dates_3_i, dep_dates_3_f, arr_dates_3_i, arr_dates_3_f),
+    # (dep_dates_4_i, dep_dates_4_f, arr_dates_4_i, arr_dates_4_f)
 )
-
-# departure0 = '1977-08-20'         
-# arrival0 = '1979-07-09' 
-# arrival1 = '1980-11-12'
-# arrival2 = '1986-01-24' 
-# arrival3 = '1990-08-25' 
-
-# dep_dates_0 = '1960-02-01' 
-# #arr_dates_0 = '1963-01-01'  
-
-# dep_dates_2_i =  "1963-01-01"
-# #arr_dates_2_i = "1967-01-01"
-
-# dep_dates_3_i =  "1967-01-01"
-# #arr_dates_3_i = "1974-01-01"
-
-# dep_dates_4_i =  "1974-01-01"
-# #arr_dates_4_i = "1984-01-01"
-
-# # Convert strings to datetime objects
-# event_dates = [departure0, arrival0, arrival1, arrival2, arrival3]
-# event_datetimes = [datetime.strptime(d, '%Y-%m-%d') for d in event_dates]
-# dep_datetimes = [datetime.strptime(dep_dates[i], '%Y-%m-%d') for i in range(5)]
-# # Compute days since relevant departure
-# days_since_departure = [(event - dep).days for event, dep in zip(event_datetimes, dep_datetimes)]
-
-
-
-
-
-
 for i in range(n_plots):
     
     ax = fig.add_axes([x, y, w, h])
@@ -323,45 +322,24 @@ for i in range(n_plots):
         
         cont  = ax.contour(date_axis[i][0], date_axis[i][1], c3_shorts_arrays[i], levels=energy_levels[i], colors='m', linewidths = lw)
         plt.clabel( cont, fmt = '%i')
-        ax.set_xlabel(f"Departure (Days Past {date_names[i][0]})")
-        ax.set_ylabel(f"Arrival (Days Past {date_names[i][2]})")
+        ax.set_xlabel(f"Departure (Days Past {date_names[i][0]})", fontsize=font_size)
+        ax.set_ylabel(f"Arrival (Days Past {date_names[i][2]})", fontsize=font_size)
         ax.xaxis.set_ticks_position('top')
         ax.xaxis.set_label_position('top')
         ax.grid(True, linestyle='--', color='gray', linewidth=0.5)
         
+        
         x_end = ax.get_xlim()[1]
         y_end = ax.get_ylim()[1]
+        y_star = 400
+        ax.plot([365, x_end], [y_star, y_star], color='red', linestyle='--')
         
-        if i == 0:
-            
-            ax.plot([566, x_end], [1285, 1285], color='red', linestyle='--')
-            plt.plot(566, 1285, marker='^', color='red')
-            
+        ax.plot([365, 365], [400, y_end], color='red', linestyle='--')
         
-        elif i == 2:
-            
-            ax.plot([1697, x_end], [2215, 2215], color='red', linestyle='--')
-            ax.plot([1697, 1697], [0, 2215], color='red', linestyle='--')
-            plt.plot(1697, 2215, marker='^', color='red')
-            
-            
-
-        # else:
-        #     pass
-            
-        # if i == 0:
-        #     for each in depart_indicies:
-        #         ax.axhline(y = each, color='red', linestyle='--')
-            
-        #     ax.axhline(y = first_id, color='blue', linestyle='--')
-                
-        #     for each2 in depart_indicies2:
-        #         ax.axvline(x = each2, color='blue', linestyle='--')
-        # if i == 2:
-        #     ax.axvline(x=saturnminline, color='red', linestyle='--')
-            
-        
+        ax.plot(365, 400, marker='^', color='red', markersize=10)
+       
         ax.set_title(f"Segment {segment_names[i]}", fontsize=font_size)
+        
         
     # Odd plots: rotated and flipped
     else:
@@ -372,37 +350,25 @@ for i in range(n_plots):
         cont  = ax.contour(date_axis[i][1], date_axis[i][0][::-1],  Z_rot, levels=energy_levels[i],colors='m', linewidths = lw)
         plt.clabel( cont, fmt = '%i')
         
-        ax.set_ylabel(f"Departure (Days Past {date_names[i][0]})")
-        ax.set_xlabel(f"Arrival (Days Past {date_names[i][2]})")
+        ax.set_ylabel(f"Departure (Days Past {date_names[i][0]})", fontsize=font_size)
+        ax.set_xlabel(f"Arrival (Days Past {date_names[i][2]})", fontsize=font_size)
         ax.xaxis.set_ticks_position('bottom')
         ax.xaxis.set_label_position('bottom')
         ax.yaxis.set_ticks_position('right')
         ax.yaxis.set_label_position('right')
-        x_end = ax.get_xlim()[1]
-        y_end = ax.get_ylim()[1]
         
-        if i == 1:
-            
-           ax.plot([0, 1697], [1285, 1285], color='red', linestyle='--')
-           ax.plot([1697, 1697], [1285, y_end], color='red', linestyle='--')
-           plt.plot(1697, 1285, marker='^', color='red')
-            
-            
-        elif i == 3:
-            ax.plot([0, 2428], [2215, 2215], color='red', linestyle='--')
-            #ax.plot([1697, 1697], [1285, y_end], color='red', linestyle='--')
-            plt.plot(2428, 2215, marker='^', color='red')
-            
-            #ax.axhline(y=2215, color='red', linestyle='--')
-        else:
-            pass
-    
+        ax.plot([0, 1150], [y_star, y_star], color='red', linestyle='--')
+        ax.plot(1150, 400, marker='^', color='red', markersize=10)
         ax.text(
-            0.5, -0.15, f"Segment {segment_names[i]}",
+            0.5, -0.1, f"Segment {segment_names[i]}",
             transform=ax.transAxes,
             ha='center', va='bottom', fontsize=font_size
         )
-            
+        
+    
+    ax.grid(True, linestyle='--', color='gray', linewidth=0.5)
+    axes.append(ax) 
+    plt.tick_params(axis='both', which='major', labelsize=10)
 
     # Snake step layout
     if i % 2 == 0:
@@ -411,3 +377,18 @@ for i in range(n_plots):
         y += h
 
 plt.show()
+
+
+# leg_len = len(c3_shorts_arrays)
+# for i in range(leg_len):
+#     n_dep, n_arr = c3_shorts_arrays[i].shape
+#     for i_dep in range(n_dep):
+#         for i_arr in range(n_arr):
+#             value = c3_shorts_arrays[i][i_dep, i_arr]
+            
+#             if i == 1:
+#                 total_energy = c3_shorts_arrays[i][i_dep, i_arr]
+#             else:
+#                 total_energy = total_energy_prev + C3(t_dep, t_arr)
+#             if total_energy < current_min:
+#                 store trajectory and energy

@@ -6,13 +6,12 @@ Created on Thu Jun 26 13:43:40 2025
 """
 
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 import spiceypy as spice
 import lambertsolve_master as lt
 import planetary_data as pd
-from scipy.integrate import solve_ivp
+
 
 
 
@@ -111,14 +110,25 @@ def vinfinity_match(planet0, planet1, v_sc_incoming, et0, tof0, diff_step=1e-3, 
     
     return tof, v_sc_depart, v_sc_arrive
 
-time0 = "1977-02-01"  # Earth departure
-time1 = "1978-10-09"  # Jupiter flyby
-time2 = "1980-05-03"  # Saturn arrival
+# time0 = "1977-08-19"  # Earth departure
+# time1 = "1979-01-16"  # Jupiter flyby
+# time2 = "1980-08-15"  # Saturn arrival
+
+# et_0 = spice.utc2et(time0)
+# et_1 = spice.utc2et(time1)
+# et_2 = spice.utc2et(time2)
+
+#print(et_0, et_1, et_2)
+
+string_var = "-705844751.8 -661348750.8 -611537698.9"
+
+arr = np.array(string_var.split(), dtype=float)
+et_0 = arr[0]
+et_1 = arr[1]
+et_2 = arr[2]
 
 
-et_0 = spice.utc2et(time0)
-et_1 = spice.utc2et(time1)
-et_2 = spice.utc2et(time2)
+
 state0 = calc_ephemeris(Earth, et_0, FRAME, OBSERVER)
 state1 = calc_ephemeris(Jupiter, et_1, FRAME, OBSERVER)
 tof_1 = et_1 - et_0
@@ -172,6 +182,7 @@ def altitude(delta_a, v_infx):
 v_inf_mag = norm(vinf_in)
 h = altitude(def_angle, v_inf_mag)
 print(h)
+print(h + r_jup)
 if h < 0:
     raise ValueError('h should not be negative')
 
@@ -182,7 +193,7 @@ a = -mu_jup / v_inf_mag**2
 
 e = 1 + rp * v_inf_mag**2 / mu_jup
 delta = 2 * np.arcsin(1 / e)
-
+print(np.rad2deg(delta))
 def rotate_vector(v, axis, angle):
     axis = axis / np.linalg.norm(axis)
     return (v * np.cos(angle) +
@@ -192,7 +203,7 @@ def rotate_vector(v, axis, angle):
 # Arbitrary impact parameter vector perpendicular to v_inf_in
 impact_axis = np.cross(vinf_in, [0, 0, 1])
 if np.linalg.norm(impact_axis) < 1e-6:
-    impact_axis = np.cross(vinf_in, [0, 1, 0])  # handle edge case
+    impact_axis = np.cross(vinf_in, [0, 1, 0])
 
 impact_axis = impact_axis / np.linalg.norm(impact_axis)
 
@@ -200,7 +211,7 @@ v_inf_out = rotate_vector(vinf_in, impact_axis, delta)
 
 
 # Generate true anomalies
-theta = np.linspace(-np.radians(80), np.radians(80), 500)  # near-perijove arc
+theta = np.linspace(-np.radians(120), np.radians(120), 1000)  
 
 # Hyperbolic trajectory in perifocal frame (orbital plane)
 r = a * (e**2 - 1) / (1 + e * np.cos(theta))
@@ -213,9 +224,10 @@ trajectory_pf = np.vstack([x_pf, y_pf, z_pf])  # 3 x N
 
 # Define perifocal axes
 x_hat = vinf_in / np.linalg.norm(vinf_in)
-z_hat = np.cross(vinf_in, v_inf_out)
-z_hat = z_hat / np.linalg.norm(z_hat)
-y_hat = np.cross(z_hat, x_hat)
+z_vec = np.cross(vinf_in, v_inf_out)
+z_hat = z_vec / np.linalg.norm(z_vec)
+y_vec = np.cross(z_hat, x_hat)
+y_hat = y_vec / np.linalg.norm(y_vec)
 
 # Rotation matrix: columns are basis vectors of perifocal frame
 R = np.column_stack((x_hat, y_hat, z_hat))
@@ -223,13 +235,32 @@ R = np.column_stack((x_hat, y_hat, z_hat))
 # Transform to inertial frame
 trajectory_inertial = R @ trajectory_pf
 
+def align_plane(trajectory, plane_normal):
+   
+    target_normal = np.array([0, 0, 1.0])
+
+    # Compute rotation axis (cross product)
+    axis = np.cross(plane_normal, target_normal)
+    if np.linalg.norm(axis) < 1e-6:
+        return trajectory  
+
+    axis /= np.linalg.norm(axis)
+    angle = np.arccos(np.dot(plane_normal, target_normal))
+
+    rotated_traj = np.array([rotate_vector(p, axis, angle) for p in trajectory.T]).T
+    return rotated_traj
+
+# Apply this right before plotting:
+trajectory_aligned = align_plane(trajectory_inertial, z_hat)
+
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
-ax.plot(*trajectory_inertial, color='blue', label='Hyperbolic Flyby')
-# ax.quiver(0, 0, 0, *v_inf_in * R_J, color='green', label='v_inf_in')
-# ax.quiver(0, 0, 0, *v_inf_out * R_J, color='red', label='v_inf_out')
+ax.plot(*trajectory_aligned, color='blue', label='Hyperbolic Flyby')
+# ax.quiver(0, 0, 0, *vinf_in * r_jup, color='green', label='v_inf_in')
+# ax.quiver(0, 0, 0, *v_inf_out * r_jup, color='red', label='v_inf_out')
+
 
 # Draw Jupiter as a sphere
 u, v = np.mgrid[0:2*np.pi:50j, 0:np.pi:25j]
@@ -239,7 +270,7 @@ zj = r_jup * np.cos(v)
 ax.plot_surface(xj, yj, zj, color='orange', alpha=0.5)
 
 # Set equal aspect ratio (spherical appearance)
-max_range = r_jup * 3 # enough to include the hyperbolic arc
+max_range = r_jup * 10# enough to include the hyperbolic arc
 ax.set_xlim(-max_range, max_range)
 ax.set_ylim(-max_range, max_range)
 ax.set_zlim(-max_range, max_range)
