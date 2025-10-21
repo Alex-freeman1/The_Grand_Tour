@@ -40,13 +40,13 @@ def radians(deg):
 def calc_ephemeris(target, ets, frame, observer):
 	return np.array(spice.spkezr( target, ets, frame, 'NONE', observer )[ 0 ])
 # Year - Month - Day
-# departure0 = '1965-01-26'          # Bad transfer
-# arrival0 = '1965-12-08'  
-# arrival1 = '1966-08-23'    
+departure0 = '1965-01-26'          # Bad transfer
+arrival0 = '1965-12-08'  
+arrival1 = '1966-08-23'    
 
-departure0 = '1965-01-31'         
-arrival0 = '1966-03-08'  
-arrival1 = '1969-02-24'  
+# departure0 = '1965-01-31'         
+# arrival0 = '1966-03-08'  
+# arrival1 = '1969-02-24'  
    
 et_departure = spice.utc2et(departure0)
 et_arrival = spice.utc2et(arrival0)
@@ -152,6 +152,6 @@ ax.scatter(*r2_jupiter, color='green', marker='o', s=100, label='Jupiter Arrival
 ax.set_xlabel("X (km)")
 ax.set_ylabel("Y (km)")
 ax.set_zlabel("Z (km)")
-ax.legend()
+ax.legend(fontsize = 25)
 plt.show()
 # ------------------------

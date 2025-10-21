@@ -227,7 +227,7 @@ ax.set_xlabel("X (km)")
 ax.set_ylabel("Y (km)")
 ax.set_zlabel("Z (km)")
 
-ax.legend()
+ax.legend(fontsize= 25)
 
 plt.show()
 
